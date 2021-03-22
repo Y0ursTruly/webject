@@ -18,10 +18,10 @@
 	"WEB-OBJECT",
 	"WEB_OBJECT",
     "websocket",
-	"websockets"
+	"websockets",
 	"object-sharing",
     "sharing",
-	"data-sharing"
+	"data-sharing",
     "object",
     "cyclic"
   ],
