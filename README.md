@@ -34,13 +34,14 @@ Three ways
 - `npm install webject`
 # How it Works
 - For the serialisation/deserialisation recursive object cloner that I made for fun a while back I modified to return a "log" which can be translated to an object even with correct referencing
-- For sharing this object(the "medium"/method), I create a websocket using the nodejs module `ws`
 - As for the logic of the sharing, the person who would *`serve`* the object is in control and can *GRANT* different *levels* of access to people who *`connect`* through a system of *authTokens* that the person who did the *`serve`* also has tools to manage
+- For sharing this object(the "medium"/method), I create a websocket using the nodejs module `ws`. It will try to use a server(a parameter you give) and if it fails(like if you gave no server parameter), it would then selfhost the socket
+- As to the datatypes shared, basically the values of all *keys* in an object(**BESIDES FUNCTIONS**). This is because functions are based on context and I don't have a way *for now*, to replicate a function's context
 
 # Updates
-Well, this is the first version. HELLO WORLD >:D
+- When serving an object, keys in that object whose values were functions were shared as *undefined*, now keys in a shared object whose values are functions are now *ignored*
+- On changes, shared objects USED TO be fully cleared then remade from scratch. Now, the only deletes are for things that were *actually* deleted(more efficient)
 <br>Well if you're all the way down here, my email is *[paulrytaylor@gmail.com](mailto:paulrytaylor@gmail.com)*
 #
-And as for the limitations..
-- On changes I clients get their object fully re-written so I plan to make it that only the edits get applied
-- *JSON.stringify* doesn't stringify *functions*(I get why) so I'd have to actively ignore keys with *function* values and *maybe* `console.warn` the omissions
+And as for the limitations.. 
+- Functions in an object wouldn't be shared. This is because functions are based on context and I don't have a way *for now*, to replicate a function's context
