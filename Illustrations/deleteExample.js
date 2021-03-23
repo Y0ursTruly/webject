@@ -1,5 +1,5 @@
 let {serve,connect}=require('../webject.js')
-var mainObj={a:{a1:1,a2:{a3:0}},b:{b1:2},c:[3,4]}
+var mainObj={a:{a1:1,a2:{a3:0}},b:{b1:2},c:[3,4],undefined}
 mainObj.m=mainObj //example object(it's cyclic too)
 setTimeout(()=>delete(mainObj.m),20001);
 //on changes, shared objects USED TO be fully cleared then remade from scratch
