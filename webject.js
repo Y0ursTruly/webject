@@ -1,5 +1,5 @@
 //when sharing an object there are three authorisation levels
-//remember, making tokens is as easy as myInterject.addToken(authLevel)
+//remember, making tokens is as easy as myWebject.addToken(authLevel)
 /*---*/
 //authLevel 1: clients with this authToken level can only view the shared object
 //authLevel 2: clients with this authToken level can only ADD new entries to the shared object
@@ -10,11 +10,11 @@
 /*---*/
 /*
 //for including my script with your html page(the line below)
-<script src="https://cdn.jsdelivr.net/npm/interject/interject.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/webject/webject.js"></script>
 //for including my script through browser console pasting
-(()=>{let script=document.createElement('script');script.src="https://cdn.jsdelivr.net/npm/interject/interject.js";document.head.appendChild(script)})()
-//for github, git clone https://github.com/Y0ursTruly/Interject.git and require('path/to/interject.js')
-//for npm, npm install interject and require('interject')
+(()=>{let script=document.createElement('script');script.src="https://cdn.jsdelivr.net/npm/webject/webject.js";document.head.appendChild(script)})()
+//for github, git clone https://github.com/Y0ursTruly/webject.git and require('path/to/webject.js')
+//for npm, npm install webject and require('webject')
 */
 
 try{ //for nodejs
@@ -25,7 +25,7 @@ catch{ //for browser
   var webSocket=WebSocket; var index=0
   webSocket.prototype.on=webSocket.prototype.addEventListener
   let script=document.createElement('script')
-  script.src="https://cdn.jsdelivr.net/npm/interject/serial.js"
+  script.src="https://cdn.jsdelivr.net/npm/webject/serial.js"
   document.head.appendChild(script)
 }
 
@@ -154,7 +154,7 @@ async function connect(location,authToken){ //receive an object(asynchronous to 
 try{module.exports={serve,connect}} //for nodejs
 catch{ //for browser
   serve=function(){
-    let message="This SERVE function is not a browser side application\nCheck out https://npmjs.com/y0urstruly/InterJect"
+    let message="This SERVE function is not a browser side application\nCheck out https://npmjs.com/package/webject"
     console.warn(message); alert(message)
   }
   console.log("Oh, hi there >:D")
