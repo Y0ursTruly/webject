@@ -33,7 +33,7 @@ let randList={} //this block here is for producing random UNIQUE keys
 var arr=["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t",
 "u","v","w","x","y","z",0,1,2,3,4,5,6,7,8,9,"!","@","$","&","*","(","-","_","=","+","[","]","~"]
 function randomChar(n){
-  var m=Math.random; var f=Math.floor; var newChar=""
+  var m=Math.random; var f=Math.floor; var newChar="webject_" //all authTokens begin with webject_
   function notUnique(){
     for(var i=0; i<f(m()*100+n); i++){newChar+=arr[f(m()*arr.length)]}
     return randList[newChar]&&newChar.length>0
