@@ -30,5 +30,8 @@
   "bugs": {
     "url": "https://github.com/Y0ursTruly/webject/issues"
   },
-  "homepage": "https://github.com/Y0ursTruly/webject#readme"
+  "homepage": "https://github.com/Y0ursTruly/webject#readme",
+  "dependencies": {
+    "ws": "^7.4.4"
+  }
 }
