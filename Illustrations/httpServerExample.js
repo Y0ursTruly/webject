@@ -4,7 +4,7 @@ let lvl1Token=null; let myOnlineDomain="webject-example.paultaylor2.repl.co/" //
 var myServer=(require('http'))
 .createServer((req,res)=>res.end(
   `<script>window.authToken="${lvl1Token}"</script>
-  <script src="https://cdn.jsdelivr.net/npm/webject/webject.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/webject@latest/webject.js"></script>
   <p>You should see 2 logs made to the console(ctrl+shift+i)</p>
   <br><p>Next, paste the following code(by the time you pop up inspect tools, the 2 logs would be made most likely)</p>
   <br><i><b>connect("wss://${myOnlineDomain}",authToken).then(obj=>window.mySharedObj=obj)</b></i>
