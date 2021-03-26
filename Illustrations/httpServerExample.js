@@ -1,4 +1,4 @@
-let {serve,connect}=require('webject.js') //for a github installation, it'd be path/to/webject.js
+let {serve,connect}=require('webject') //for a github installation, it'd be path/to/webject.js
 //you can use the above example if you installed this from npm
 let lvl1Token=null; let myOnlineDomain="webject-example.paultaylor2.repl.co/" //replace myOnlineDomain with your own
 var myServer=(require('http'))
