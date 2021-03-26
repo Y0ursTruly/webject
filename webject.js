@@ -101,7 +101,8 @@ function serve(obj,server){ //serve an object(synchonous because this IS the ser
       if(clientMsgCount==0){ //first message is handshake
         if(!authTokens[msg]){return client.close(1000)} //if you client doesn't have a valid token, they get closed
         authTokens[msg].clients.push(client)
-        s=setInterval(handleObj,0); authToken=msg
+        client.send(staticString); authToken=msg
+        s=setInterval(handleObj,0)
       }
       else{ //listen to client if authLevel > 1 AND serial difference
         let myAuthLevel=authTokens[authToken].authLevel //authLevel 1 would be ignored(can only view)
@@ -123,30 +124,41 @@ function serve(obj,server){ //serve an object(synchonous because this IS the ser
 async function connect(location,authToken){ //receive an object(asynchronous to wait for connection with server)
   if(typeof location!="string"||typeof authToken!="string"){throw new Error("BOTH location AND authToken MUST be STRINGS")}
   let obj={}; let toReturn=null
+  let toReject=null; let s=null
   let server=new webSocket(location)
-  let p=new Promise(r=>{toReturn=r})
-  let disconnectMsg=(event)=>console.warn(`connection with server is over due to event: ${event}\nADVICE: check your location and token parameters`)
-  const dontDeleteEntireObj=obj //just so that you can't delete the object entirely
+  let p=new Promise((r,j)=>{toReturn=r;toReject=j})
+  function disconnectHandle(event,name){
+    let code=event; let disconnectReason=null
+    if(isNaN(code)){code=event.code}
+    if(code==1006){disconnectReason="closed ABNORMALLY: either you or the server just LOST connection :|"}
+    else{disconnectReason="closed PURPOSEFULLY: check your location and token parameters, OR you got BOOTED"}
+    let errorMessage=`connection with server is OVER due to event: ${name}\n${disconnectReason}`
+    if(toReturn){toReject(errorMessage)}else{console.warn(errorMessage)}
+    /*if the promise is NOT fulfiled, reject.. else, warn*/
+    clearInterval(s) //of course, cleaning out this timeout
+  }
   let staticString=""
   server.on('open',()=>{
-    let serverMsgCount=0; let s
-    toReturn(true); server.send(authToken)
+    let serverMsgCount=0
+    server.send(authToken)
     function handleObj(){ //sends object data to server
       let currentString=objToString(obj)
       if(currentString!=staticString){server.send(currentString)} //override only works if authToken's authLevel is 3
       /*however there is no way for the client to know the authLevel of the authToken provided*/
     }
-    server.on('message',(msg)=>{
-      if(serverMsgCount==0){s=setInterval(handleObj,0)}
+    server.on('message',(message)=>{
+      let msg=message //for msg to be the same data(whether browser or nodejs)
+      if(typeof msg=="object"){msg=msg.data} //this solves browser issues
+      if(serverMsgCount==0){toReturn(true);toReturn=null;s=setInterval(handleObj,0)}
       if(msg!=staticString){staticString=msg;stringToObj(msg,obj)} //server object data is absolute
       /*Modifying this code properly would reject the server rules, to modify the object to your liking*/
       /*BUT the only object you can meddle with would be the one on YOUR device(it's like if you disconnected)*/
       /*In addition to that, you wouldn't even be sharing the object, since rejecting the server is as good as leaving the socket*/
       serverMsgCount++
     })
-    server.on('disconnect',()=>{disconnectMsg("disconnect");clearTimeout(s)})
-    server.on('close',()=>{disconnectMsg("close");clearInterval(s)})
-    server.on('error',()=>{disconnectMsg("error");clearInterval(s)})
+    server.on('disconnect',(ev)=>disconnectHandle(ev,'disconnect'))
+    server.on('close',(ev)=>disconnectHandle(ev,'close'))
+    server.on('error',(ev)=>disconnectHandle(ev,'error'))
   })
   await p; return obj
 }
