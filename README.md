@@ -40,11 +40,7 @@ Three ways
 - As to the datatypes shared, basically the values of all *keys* in an object(**BESIDES FUNCTIONS**). This is because functions are based on context and I don't have a way *for now*, to replicate a function's context
 
 # Updates
-- function `connection`: *resolve* and *reject* work in right places(resolved **ONLY WHEN** server does handshake *(talks back)*), warns on connection closed *(after successful connection)*
-- function `serve`: does handshake even if object is the same state as before connection, by sending on the first message when socket sends valid code
-- every created *authToken* now begins with *"webject_"*
-- for correct scripts to load from [jsdelivr](https://cdn.jsdelivr.com), I request from *webject@latest* instead of plain *webject*
-- *[LIVE WEB EXAMPLE](https://webject-example.paultaylor2.repl.co/)* added :D
+- for loading scripts in browser, *correct* script loaded from here on out. uses *version name* for script tag(for loading script in browser) instead of the name *"latest"* since [jsdelivr](https://cdn.jsdelvr.com) caches the urls after first request(a request without a *version name* that is)
 <br>Well if you're all the way down here, my email is *[paulrytaylor@gmail.com](mailto:paulrytaylor@gmail.com)*
 #
 And as for the limitations.. 
