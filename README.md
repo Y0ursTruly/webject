@@ -6,7 +6,8 @@ Using `require` to get `webject.js` is the main idea..
 <br>**OR** `require('path/to/webject.js')` if you installed it as the *[Github Package](https://github.com/Y0ursTruly/webject.git)*
 <br>*[Example Usage](https://github.com/Y0ursTruly/webject/blob/main/Illustrations/clientAndServer.js)*
 #
-You can even use the `connect` function from browser if you load a script tag from [this url](https://cdn.jsdelivr.net/npm/webject/webject.js)(look at the comments of [webject.js](https://github.com/Y0ursTruly/webject/blob/main/webject.js#L13) for example)
+You can even use the `connect` function from browser if you load a script tag from [this url](https://cdn.jsdelivr.net/npm/webject/webject.js)(look at the *[comments of webject.js](https://github.com/Y0ursTruly/webject/blob/main/webject.js#L13)* for example)
+<br>You can go to a *[LIVE WEB EXAMPLE](https://webject-example.paultaylor2.repl.co/)* (which hosts the equivalent of *[an example](https://github.com/Y0ursTruly/webject/blob/main/Illustrations/httpServerExample.js)*) then paste the following code `connect("wss://webject-example.paultaylor2.repl.co/",authToken).then(obj=>window.mySharedObj=obj)` and `mySharedObj` would be the *shared object*
 #
 Now there are *TWO* main functions that make up the usage: `serve` and `connect`
 <br>*eg*:`let {serve,connect}=require('webject')`
@@ -39,9 +40,10 @@ Three ways
 - As to the datatypes shared, basically the values of all *keys* in an object(**BESIDES FUNCTIONS**). This is because functions are based on context and I don't have a way *for now*, to replicate a function's context
 
 # Updates
-- When serving an object, keys in that object whose values were functions were shared as *undefined*, now keys in a shared object whose values are functions are now *ignored*
-- On changes, shared objects USED TO be fully cleared then remade from scratch. Now, the only deletes are for things that were *actually* deleted(more efficient)
+- function `connection`: *resolve* and *reject* work in right places(resolved **ONLY WHEN** server does handshake *(talks back)*), warns on connection closed *(after successful connection)*
+- function `serve`: does handshake even if object is the same state as before connection, by sending on the first message when socket sends valid code
+- *[LIVE WEB EXAMPLE](https://webject-example.paultaylor2.repl.co/)* added :D
 <br>Well if you're all the way down here, my email is *[paulrytaylor@gmail.com](mailto:paulrytaylor@gmail.com)*
 #
 And as for the limitations.. 
-- Functions in an object wouldn't be shared. This is because functions are based on context and I don't have a way *for now*, to replicate a function's context
+- I have ***no clue*** what would be a REALLY useful implementation of this >:{
