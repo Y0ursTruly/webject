@@ -42,6 +42,7 @@ Three ways
 # Updates
 - function `connection`: *resolve* and *reject* work in right places(resolved **ONLY WHEN** server does handshake *(talks back)*), warns on connection closed *(after successful connection)*
 - function `serve`: does handshake even if object is the same state as before connection, by sending on the first message when socket sends valid code
+- every created *authToken* now begins with *"webject_"*
 - *[LIVE WEB EXAMPLE](https://webject-example.paultaylor2.repl.co/)* added :D
 <br>Well if you're all the way down here, my email is *[paulrytaylor@gmail.com](mailto:paulrytaylor@gmail.com)*
 #
