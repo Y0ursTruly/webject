@@ -10,9 +10,9 @@
 /*---*/
 /*
 //for including my script with your html page(the line below)
-<script src="https://cdn.jsdelivr.net/npm/webject@1.0.75/webject.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/webject@1.0.8/webject.js"></script>
 //for including my script through browser console pasting
-(()=>{let script=document.createElement('script');script.src="https://cdn.jsdelivr.net/npm/webject@1.0.75/webject.js";document.head.appendChild(script)})()
+(()=>{let script=document.createElement('script');script.src="https://cdn.jsdelivr.net/npm/webject@1.0.8/webject.js";document.head.appendChild(script)})()
 //for github, git clone https://github.com/Y0ursTruly/webject.git and require('path/to/webject.js')
 //for npm, npm install webject and require('webject')
 */
@@ -25,7 +25,7 @@ catch{ //for browser
   var webSocket=WebSocket; var index=0
   webSocket.prototype.on=webSocket.prototype.addEventListener
   let script=document.createElement('script')
-  script.src="https://cdn.jsdelivr.net/npm/webject@1.0.75/serial.js"
+  script.src="https://cdn.jsdelivr.net/npm/webject@1.0.8/serial.js"
   document.head.appendChild(script)
 }
 
@@ -55,8 +55,9 @@ function compare(str1,str2){ //str1 is the home obj, str2 is the client desired 
   return toReturn
 }
 
+//serve an object
 function serve(obj,server){ //serve an object(synchonous because this IS the server clients wait to connect to)
-  if(typeof obj!="object"){throw new Error("Parameter 'obj' MUST be an OBJECT")}
+  if(typeof obj!="object"||obj==null){throw new Error("Parameter 'obj' MUST be an OBJECT >:|")}
   const dontDeleteEntireObj=obj //just so that you can't delete the object entirely
   try{var ws=new webSocket.Server({server})}
   catch{
@@ -64,31 +65,84 @@ function serve(obj,server){ //serve an object(synchonous because this IS the ser
     catch{throw new Error("UNABLE TO SERVE >:{")}
   }
   var authTokens={}
-  let string=()=>objToString(obj)
-  let staticString=string()
-  function addToken(authLevel){ //token generator
-    if(!{1:1,2:1,3:1}[authLevel]){
-      throw new Error("INVALID AUTH LEVEL\nAuthorisation levels are 1, 2 and 3")
+  var levels={1:1,2:1,3:1}
+  function addToken(authLevel,object){ //token generator
+    if(typeof object!="object"||obj==null){object=obj} //can share one object per authToken
+    if(!levels[authLevel]){
+      throw new Error("INVALID AUTH LEVEL\nAuthorisation levels are 1, 2 and 3 :/")
     }
     let authToken=randomChar(15)
-    authTokens[authToken]={authToken,authLevel,clients:[]} //structure for each authToken object in authTokens
+    authTokens[authToken]={authToken,authLevel,clients:[],object,locked:false} //structure for each authToken object in authTokens
     return authToken
   }
   function endToken(authToken){ //token remover
     try{
-      authTokens[authToken].clients.forEach(a=>a.close())
-      delete(authTokens[authToken])
+      authTokens[authToken].clients.forEach(a=>a.close(1000))
+      return delete(authTokens[authToken])
     }
-    catch{throw new Error("INVALID TOKEN(as in it doesn't exist)")}
+    catch{throw new Error("INVALID TOKEN(as in it doesn't exist) :/")}
   }
+  //event stuff begin
+  var events={connect:[],disconnect:[]} //more events will come in time
+  function lock(authToken){
+    if(authToken){
+      try{authTokens[authToken].locked=true}
+      catch{throw new Error("PLEASE give a VALID authToken(given token doesn't exist) 0_0")}
+    }
+    else{
+      try{this.token.locked=true}
+      catch{throw new Error("PLEASE give an authToken which is of type STRING 0_0")}
+    }
+  }
+  function unlock(authToken){
+    if(authToken){
+      try{authTokens[authToken].locked=false}
+      catch{throw new Error("PLEASE give a VALID authToken(given token doesn't exist) 0_0")}
+    }
+    else{
+      try{this.token.locked=false}
+      catch{throw new Error("PLEASE give an authToken which is of type STRING 0_0")}
+    }
+  }
+  function dispatch(type,token,socket){
+    var defaultPrevented=false
+    let preventDefault=()=>defaultPrevented=true
+    var customEvent={token,socket,type,lock,unlock,preventDefault}
+    let warn="an added listener produced the following error :/\n~"
+    events[type].forEach(a=>{
+      if(!defaultPrevented){
+        try{a(customEvent)} catch(err){console.warn(warn,err)}
+      }
+    })
+  }
+  function addListener(event,yourReaction){
+    if(typeof event!="string"||typeof yourReaction!="function"){
+      throw new Error("The event parameter MUST be a STRING\nAND the yourReaction parameter MUST be a FUNCTION >:|")
+    }
+    if(!events[event]){throw new Error("That event DOES NOT EXIST :|")}
+    events[event].push(yourReaction)
+  }
+  function endListener(event,yourReaction){
+    if(typeof event!="string"||typeof yourReaction!="function"){
+      throw new Error("The event parameter MUST be a STRING\nAND the yourReaction parameter MUST be a FUNCTION >:|")
+    }
+    if(!events[event]){throw new Error("That event DOES NOT EXIST :|")}
+    let indexOfReaction=events[event].indexOf(yourReaction)
+    if(indexOfReaction!=-1){events[event].splice(indexOfReaction,1)}
+  }
+  //event stuff end
   ws.on('connection',(client)=>{ //websocket block
     let clientMsgCount=0
     let s; let authToken
+    let myObj=null //can share one object per authToken
+    let string=()=>objToString(myObj)
+    let staticString=null
     function closeClient(){ //to ensure socket cleanup
       try{
-        client.close(1000); let clients=authTokens[authToken].clients
-        if(clients.includes(client)){clients.splice(clients.indexOf(client),1)}
+        client.close(1000); let indexOfClient=authTokens[authToken].clients.indexOf(client)
+        if(indexOfClient!=-1){authTokens[authToken].clients.splice(indexOfClient,1)}
       }catch{}
+      dispatch("disconnect",authTokens[authToken]||null,client) //if endToken was used, the ev.token value would be null
       clearInterval(s)
     }
     function handleObj(){ //sends object data to client
@@ -100,15 +154,19 @@ function serve(obj,server){ //serve an object(synchonous because this IS the ser
     client.on('message',(msg)=>{
       if(clientMsgCount==0){ //first message is handshake
         if(!authTokens[msg]){return client.close(1000)} //if you client doesn't have a valid token, they get closed
+        if(authTokens[msg].locked){return client.close(1001)} //if authToken is locked, no more new connections
+        myObj=authTokens[msg].object
         authTokens[msg].clients.push(client)
-        client.send(staticString); authToken=msg
+        dispatch("connect",authTokens[msg],client)
+        staticString=string(); authToken=msg
+        client.send(staticString)
         s=setInterval(handleObj,0)
       }
       else{ //listen to client if authLevel > 1 AND serial difference
         let myAuthLevel=authTokens[authToken].authLevel //authLevel 1 would be ignored(can only view)
         if(myAuthLevel>1&&staticString!=msg){try{
-          if(myAuthLevel==3){return stringToObj(msg,obj)} //authLevel 3 unfiltered edits
-          if(compare(staticString,msg)){stringToObj(msg,obj)} //authLevel 2 can only add, therefore compare function
+          if(myAuthLevel==3){return stringToObj(msg,myObj)} //authLevel 3 unfiltered edits
+          if(compare(staticString,msg)){stringToObj(msg,myObj)} //authLevel 2 can only add, therefore compare function
         }catch{/*purposeful or not, unwanted data can be sent and read with error*/}}
       }
       clientMsgCount++
@@ -118,11 +176,12 @@ function serve(obj,server){ //serve an object(synchonous because this IS the ser
     client.on('close',closeClient)
     client.on('error',closeClient)
   })
-  return {authTokens,addToken,endToken}
+  return {authTokens,addToken,endToken,lock,unlock,addListener,endListener}
 }
 
+//connect to an object
 async function connect(location,authToken){ //receive an object(asynchronous to wait for connection with server)
-  if(typeof location!="string"||typeof authToken!="string"){throw new Error("BOTH location AND authToken MUST be STRINGS")}
+  if(typeof location!="string"||typeof authToken!="string"){throw new Error("BOTH location AND authToken MUST be STRINGS >:|")}
   let obj={}; let toReturn=null
   let toReject=null; let s=null
   let server=new webSocket(location)
@@ -131,11 +190,12 @@ async function connect(location,authToken){ //receive an object(asynchronous to 
     let code=event; let disconnectReason=null
     if(isNaN(code)){code=event.code}
     if(code==1006){disconnectReason="closed ABNORMALLY: either you or the server just LOST connection :|"}
-    else{disconnectReason="closed PURPOSEFULLY: check your location and token parameters, OR you got BOOTED"}
+    else if(code==1001){disconnectReason="authToken LOCKED: this is a correct key, but it takes no new connections 0_0"}
+    else{disconnectReason="closed PURPOSEFULLY: check your location and token parameters, OR you got BOOTED :/"}
     let errorMessage=`connection with server is OVER due to event: ${name}\n${disconnectReason}`
     if(toReturn){toReject(errorMessage)}else{console.warn(errorMessage)}
     /*if the promise is NOT fulfiled, reject.. else, warn*/
-    clearInterval(s) //of course, cleaning out this timeout
+    clearInterval(s) //of course, cleaning out this interval
   }
   let staticString=""
   server.on('open',()=>{
