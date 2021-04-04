@@ -1,6 +1,6 @@
 function objToString(obj,checkClone){ //concept from object cloner
   //put a truthy value for checkClone and it returns {clone,string}
-  if(typeof obj!="object"){const x=obj; return x}
+  if(typeof obj!="object"||obj==null){const x=obj; return x}
   
   function mapToFile(m,files){var x=files
     if(!m||!m.length){return(files)}var errort=0
