@@ -49,8 +49,8 @@ Three ways
 - As to the datatypes shared, basically the values of all *keys* in an object(**BESIDES FUNCTIONS**). This is because functions are based on context and I don't have a way *for now*, to replicate a function's context
 
 # Updates
-- *New Tools*: the new tools are lock, unlock, addListener, endListener. For addListener, there are only 2 events so far(*connect* and *disconnect*)
-- *New Functionality*: the new functionality is that multiple objects can be shared with one instance of webject(a different object can be shared with EACH authToken)
+- Nested objects inside the shared object would be **RE-POINTED** to upon changes
+<br>See *[this example](https://github.com/Y0ursTruly/webject/blob/main/Illustrations/noRePointing.js)*
 <br>Well if you're all the way down here, my email is *[paulrytaylor@gmail.com](mailto:paulrytaylor@gmail.com)*
 #
 And as for the limitations.. 
