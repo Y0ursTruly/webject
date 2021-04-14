@@ -3,6 +3,7 @@ let {serve,connect}=require('../webject.js');
 
 (async()=>{
   var arr=[1,2,3]; var objToShare={arr}
+  console.log(arr) //before changes
   let myWebject=serve(objToShare)
   let myToken=myWebject.addToken(3)
   let url="ws://localhost:8009"
