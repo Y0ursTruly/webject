@@ -49,7 +49,7 @@ Three ways
 - As to the datatypes shared, basically the values of all *keys* in an object(**BESIDES FUNCTIONS**). This is because functions are based on context and I don't have a way *for now*, to replicate a function's context
 
 # Updates
-- Nested objects inside the shared object would be **RE-POINTED** to upon changes
+- Logical Fix: Nested objects inside the shared object *used to be* be **RE-POINTED** to upon changes(now nested objects upon changes are modified)
 <br>See *[this example](https://github.com/Y0ursTruly/webject/blob/main/Illustrations/noRePointing.js)*
 
 <br>Well if you're all the way down here, my email is *[paulrytaylor@gmail.com](mailto:paulrytaylor@gmail.com)*
