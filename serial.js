@@ -1,6 +1,6 @@
 function objToString(obj,checkClone){ //concept from object cloner
   //put a truthy value for checkClone and it returns {clone,string}
-  if(typeof obj!="object"||obj==null){const x=obj; return x}
+  if(typeof obj!="object"){const x=obj; return x}
   
   function mapToFile(m,files){var x=files
     if(!m||!m.length){return(files)}var errort=0
@@ -52,7 +52,12 @@ function stringToObj(string,obj){
     let x=obj; let index=a.path.length-1
     if(a.path.length==0){return obj.__proto__=a.value.__proto__}
     a.path.slice(0,index).forEach(a=>x=x[a])
-    if(Object.keys(a).includes("value")){x[a.path[index]]=a.value;arr.push(a.value)}
+    if(Object.keys(a).includes("value")){
+      if(typeof x[a.path[index]]=="object"&&typeof a.value=="object"){
+        x[a.path[index]].__proto__=a.value.__proto__; a.value=x[a.path[index]]
+      }
+      else{x[a.path[index]]=a.value} arr.push(a.value)
+    }
     else{x[a.path[index]]=arr[a.reference];arr.push(arr[a.reference])}
   })
   //this part(the next 3 lines) for deleting ONLY the removed keys(instead of deleting everything and rewriting)
