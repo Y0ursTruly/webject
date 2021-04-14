@@ -51,6 +51,7 @@ Three ways
 # Updates
 - Nested objects inside the shared object would be **RE-POINTED** to upon changes
 <br>See *[this example](https://github.com/Y0ursTruly/webject/blob/main/Illustrations/noRePointing.js)*
+
 <br>Well if you're all the way down here, my email is *[paulrytaylor@gmail.com](mailto:paulrytaylor@gmail.com)*
 #
 And as for the limitations.. 
