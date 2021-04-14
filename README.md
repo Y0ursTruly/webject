@@ -1,5 +1,5 @@
 # webject
-Share Objects Online with the power of websockets. Keys, Values AND references. Webject is short for Web Object and it really is sharing objects on the web. Someone can host an object, and make authTokens for others online to share this object
+Share Objects Online with the power of websockets. Keys, Values AND references. Webject is short for Web Object and it really is an API for sharing objects on the web. Someone can host an object, and make authTokens for others online to share this object
 # Usage
 Using `require` to get `webject.js` is the main idea..
 <br>So it may vary from `require('webject')` if installed it as *[An NPMJS Package](https://npmjs.com/package/webject)*
