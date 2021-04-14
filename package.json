@@ -1,10 +1,10 @@
 {
   "name": "webject",
-  "version": "1.0.8",
-  "description": "Share Objects Online with the power of websockets. Keys, Values AND references. Webject is short for Web Object and it really is sharing objects on the web. Someone can host an object, and make authTokens for others online to share this object",
+  "version": "1.0.9",
+  "description": "Share Objects Online with the power of websockets. Keys, Values AND references. Webject is short for Web Object and it really is an API for sharing objects on the web. Someone can host an object, and make authTokens for others online to share this object",
   "main": "webject.js",
   "scripts": {
-    "test": "node ./Illustrations/clientAndServer.js"
+    "test": "node ./Illustrations/tests.js"
   },
   "repository": {
     "type": "git",
@@ -24,6 +24,7 @@
     "data-sharing",
     "object",
     "cyclic",
+    "API",
     "api"
   ],
   "author": "Paul R. Y. Taylor",
