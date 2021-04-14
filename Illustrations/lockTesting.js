@@ -1,3 +1,4 @@
+setTimeout(()=>process.exit(0),2001)
 let {serve,connect}=require('../webject.js')
 var mainObj={a:{a1:1,a2:{a3:0}},b:{b1:2},c:[3,4],undefined} //even undefined value gets shared >:D
 mainObj.m=mainObj; //example object(it's cyclic too)
