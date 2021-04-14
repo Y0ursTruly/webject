@@ -9,7 +9,8 @@ async function exec(command){
 }
 
 async function example(toLog,exampleName){
-  log('\n'+toLog); return await exec(`node "${__dirname}\\${exampleName}.js"`)
+  let slash=process.platform=="win32"?"\\":"/"; log('\n'+toLog)
+  return await exec(`node "${__dirname+slash+exampleName}.js"`)
 };
 
 (async()=>{
