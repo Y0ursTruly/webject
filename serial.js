@@ -1,4 +1,4 @@
-function objToString(obj,checkClone){ //concept from object cloner
+function objToString(obj,spacing,checkClone){ //concept from object cloner
   //put a truthy value for checkClone and it returns {clone,string}
   if(typeof obj!="object"){const x=obj; return x}
   
@@ -37,7 +37,7 @@ function objToString(obj,checkClone){ //concept from object cloner
       newObj[a]=obj[a]; map=map1
     })
   }
-  recurse(obj,newObj,[]); var result=JSON.stringify(arr2)
+  recurse(obj,newObj,[]); var result=JSON.stringify(arr2,null,spacing||'')
   if(checkClone){return{clone:newObj,string:result}}return result
 }
 function stringToObj(string,obj){
@@ -70,4 +70,4 @@ function stringToObj(string,obj){
 }
 
 try{module.exports={objToString,stringToObj}}
-catch(err){console.log("BTW, you must be a browser :D")}
+catch(err){console.log("Part 2/2 loaded, LET'S GO >:D")}
