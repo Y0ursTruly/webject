@@ -7,13 +7,16 @@ mainObj.m=mainObj; //example object(it's cyclic too)
 (async()=>{
   let myWebject=serve(mainObj) //I would let it make it's own server since I don't have one to give it to
   /*if you do already have a server, you can just pass it in through the second argument*/
-  let toRemove=(ev)=>console.log("This listener is before the one that prevents default so it runs") //this gets removed later down
+  let toRemove=(ev)=>console.log("\nThis listener is before the one that prevents default so it runs\n") //this gets removed later down
   myWebject.addListener("connect",toRemove)
   myWebject.addListener("connect",(ev)=>{
     let tokenInfo=ev.token //this is an object made from the function addToken, constructed like {authToken,authLevel,clients:[],object,locked:false}
     console.log(`connection with token ${tokenInfo.authToken} spotted >:}\n`); ev.preventDefault() //now the second listener wouldn't activate
   })
   myWebject.addListener("connect",console.log) //this listener will not activate since default prevented
+  
+  //new edit event introduced in version 1.1.0
+  myWebject.addListener("edit",({token})=>{ if(token.object==mainObj){console.log("edit event activated\nmainObj.c[0] ===",mainObj.c[0],"\n")} })
   
   setInterval(()=>{mainObj.c[0]++;mainObj2.n++},500) //slight edit to objects every 500 ms
   
