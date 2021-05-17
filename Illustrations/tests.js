@@ -21,4 +21,5 @@ async function example(toLog,exampleName){
   await example("Lock Testing(an authToken can be locked)", "lockTesting")
   await example("Events Testing(demonstration of events)", "eventsTesting")
   await example("No Re-Pointing Test(nested objects are instead modified)", "noRePointing")
+  await example("Sync and Desync Test(writes to file on change of object)", "syncTesting")
 })()
