@@ -10,25 +10,26 @@
 /*---*/
 /*
 //for including my script with your html page(the line below)
-<script src="https://cdn.jsdelivr.net/npm/webject@1.0.8/webject.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/webject@1.1.0/webject.js"></script>
 //for including my script through browser console pasting
-(()=>{let script=document.createElement('script');script.src="https://cdn.jsdelivr.net/npm/webject@1.0.8/webject.js";document.head.appendChild(script)})()
+(()=>{let script=document.createElement('script');script.src="https://cdn.jsdelivr.net/npm/webject@1.1.0/webject.js";document.head.appendChild(script)})()
 //for github, git clone https://github.com/Y0ursTruly/webject.git and require('path/to/webject.js')
 //for npm, npm install webject and require('webject')
 */
 
 try{ //for nodejs
-  var webSocket=require('ws'); var index=0
+  var webSocket=require('ws'); var fs=require('fs'); var index=0
   var {objToString,stringToObj}=require(__dirname+'/serial.js')
 }
 catch{ //for browser
   var webSocket=WebSocket; var index=0
   webSocket.prototype.on=webSocket.prototype.addEventListener
   let script=document.createElement('script')
-  script.src="https://cdn.jsdelivr.net/npm/webject@1.0.8/serial.js"
+  script.src="https://cdn.jsdelivr.net/npm/webject@1.1.0/serial.js"
   document.head.appendChild(script)
 }
 
+let syncList={} //sync list for records of syncing
 let randList={} //this block here is for producing random UNIQUE keys
 var arr=["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t",
 "u","v","w","x","y","z",0,1,2,3,4,5,6,7,8,9,"!","@","$","&","*","(","-","_","=","+","[","]","~"]
@@ -56,7 +57,7 @@ function compare(str1,str2){ //str1 is the home obj, str2 is the client desired 
 }
 
 //serve an object
-function serve(obj,server){ //serve an object(synchonous because this IS the server clients wait to connect to)
+function serve(obj,server){ //serve an object(synchronous because this IS the server clients wait to connect to)
   if(typeof obj!="object"||obj==null){throw new Error("Parameter 'obj' MUST be an OBJECT >:|")}
   const dontDeleteEntireObj=obj //just so that you can't delete the object entirely
   try{var ws=new webSocket.Server({server})}
@@ -66,13 +67,23 @@ function serve(obj,server){ //serve an object(synchonous because this IS the ser
   }
   var authTokens={}
   var levels={1:1,2:1,3:1}
+  //utility functions begin
   function addToken(authLevel,object){ //token generator
     if(typeof object!="object"||obj==null){object=obj} //can share one object per authToken
     if(!levels[authLevel]){
       throw new Error("INVALID AUTH LEVEL\nAuthorisation levels are 1, 2 and 3 :/")
     }
     let authToken=randomChar(15)
-    authTokens[authToken]={authToken,authLevel,clients:[],object,locked:false} //structure for each authToken object in authTokens
+    authTokens[authToken]={authToken,authLevel,clients:[],object,locked:false,string:objToString(object)} //structure for each authToken object in authTokens
+    let s=setInterval(()=>{
+      let token=authTokens[authToken]
+      if(!token){return clearInterval(s)}
+      if(token.clients.length){return null}
+      let staticString=objToString(object)
+      if(token.string!=staticString){
+        token.string=staticString; dispatch("edit",token,null) //if existing token but no connected client
+      }
+    },0)
     return authToken
   }
   function endToken(authToken){ //token remover
@@ -82,8 +93,6 @@ function serve(obj,server){ //serve an object(synchonous because this IS the ser
     }
     catch{throw new Error("INVALID TOKEN(as in it doesn't exist) :/")}
   }
-  //event stuff begin
-  var events={connect:[],disconnect:[]} //more events will come in time
   function lock(authToken){
     if(authToken){
       try{authTokens[authToken].locked=true}
@@ -104,6 +113,9 @@ function serve(obj,server){ //serve an object(synchonous because this IS the ser
       catch{throw new Error("PLEASE give an authToken which is of type STRING 0_0")}
     }
   }
+  //utility functions end
+  //event stuff begin
+  var events={connect:[],disconnect:[],edit:[]} //more events will come in time
   function dispatch(type,token,socket){
     var defaultPrevented=false
     let preventDefault=()=>defaultPrevented=true
@@ -131,42 +143,48 @@ function serve(obj,server){ //serve an object(synchonous because this IS the ser
     if(indexOfReaction!=-1){events[event].splice(indexOfReaction,1)}
   }
   //event stuff end
-  ws.on('connection',(client)=>{ //websocket block
+  //websocket block begin
+  ws.on('connection',(client)=>{
     let clientMsgCount=0
-    let s; let authToken
+    let s=null; let token=null
     let myObj=null //can share one object per authToken
     let string=()=>objToString(myObj)
-    let staticString=null
+    let dispatchEdit=()=>dispatch("edit",token,client)
     function closeClient(){ //to ensure socket cleanup
       try{
-        client.close(1000); let indexOfClient=authTokens[authToken].clients.indexOf(client)
-        if(indexOfClient!=-1){authTokens[authToken].clients.splice(indexOfClient,1)}
+        client.close(1000); let indexOfClient=token.clients.indexOf(client)
+        if(indexOfClient!=-1){token.clients.splice(indexOfClient,1)}
       }catch{}
-      dispatch("disconnect",authTokens[authToken]||null,client) //if endToken was used, the ev.token value would be null
+      dispatch("disconnect",token||null,client) //if endToken was used, the ev.token value would be null
       clearInterval(s)
     }
     function handleObj(){ //sends object data to client
       let currentString=string()
-      if(currentString!=staticString){
-        staticString=currentString; client.send(staticString)
+      if(currentString!=token.string){
+        token.string=currentString; dispatchEdit(); client.send(token.string)
       }
     }
     client.on('message',(msg)=>{
       if(clientMsgCount==0){ //first message is handshake
         if(!authTokens[msg]){return client.close(1000)} //if you client doesn't have a valid token, they get closed
         if(authTokens[msg].locked){return client.close(1001)} //if authToken is locked, no more new connections
-        myObj=authTokens[msg].object
-        authTokens[msg].clients.push(client)
-        dispatch("connect",authTokens[msg],client)
-        staticString=string(); authToken=msg
-        client.send(staticString)
+        token=authTokens[msg]
+        myObj=token.object
+        token.string=string()
+        client.send(token.string)
         s=setInterval(handleObj,0)
+        token.clients.push(client)
+        dispatch("connect",token,client)
       }
       else{ //listen to client if authLevel > 1 AND serial difference
-        let myAuthLevel=authTokens[authToken].authLevel //authLevel 1 would be ignored(can only view)
-        if(myAuthLevel>1&&staticString!=msg){try{
-          if(myAuthLevel==3){return stringToObj(msg,myObj)} //authLevel 3 unfiltered edits
-          if(compare(staticString,msg)){stringToObj(msg,myObj)} //authLevel 2 can only add, therefore compare function
+        let myAuthLevel=token.authLevel //authLevel 1 would be ignored(can only view)
+        if(myAuthLevel>1&&token.string!=msg){try{
+          if(myAuthLevel==3){ //authLevel 3 unfiltered edits
+            stringToObj(msg,myObj); token.string=string(); dispatchEdit()
+          }
+          else if(compare(staticString,msg)){ //authLevel 2 can only add, therefore compare function
+            stringToObj(msg,myObj); token.string=string(); dispatchEdit()
+          }
         }catch{/*purposeful or not, unwanted data can be sent and read with error*/}}
       }
       clientMsgCount++
@@ -176,6 +194,7 @@ function serve(obj,server){ //serve an object(synchonous because this IS the ser
     client.on('close',closeClient)
     client.on('error',closeClient)
   })
+  //websocket block end
   return {authTokens,addToken,endToken,lock,unlock,addListener,endListener}
 }
 
@@ -223,11 +242,51 @@ async function connect(location,authToken){ //receive an object(asynchronous to 
   await p; return obj
 }
 
-try{module.exports={serve,connect}} //for nodejs
+//sync object to filePath
+function sync(obj,filePath,spacing){
+  //error block 1 begin
+  var errors=[]; let yesOrNo={true:"errors",false:"error"}
+  if(typeof obj!="object"){errors.push("obj MUST be an OBJECT >:|")}
+  if(typeof filePath!="string"){errors.push("filePath MUST be a STRING >:{")}
+  if(spacing&&typeof spacing!="string"){errors.push("spacing (if used) MUST be a STRING >:[")}
+  if(errors.length){throw new Error(`A total of ${errors.length} ${yesOrNo[errors.length]} generated ;-;\n${errors.join("\n")}`)}
+  //error block 1 end
+  //error block 2 begin
+  try{fs.writeFileSync(filePath,fs.readFileSync(filePath))}
+  catch{
+    try{fs.writeFileSync(filePath,objToString(obj,spacing))}
+    catch(err){throw new Error("Using this filePath caused an error ;-;\n~",err)}
+  }
+  //error block 2 end
+  
+  var string=()=>objToString(obj,spacing)
+  var staticString=string()
+  const syncID=setInterval(()=>{
+    let testString=string()
+    if(testString!=staticString){
+      staticString=testString
+      try{fs.writeFileSync(filePath,staticString)}
+      catch(err){throw new Error(`This is strange.. suddenly, writing to ${filePath} is causing an error :?\n~`,err)}
+    }
+  },0)
+  syncList[syncID]=true
+  return syncID
+}
+
+//desyc object from filePath
+function desync(syncID){
+  if(!syncList[syncID]){throw new Error("INVALID syncID *-*")}
+  delete(syncList[syncID]); clearInterval(syncID)
+}
+
+try{module.exports={serve, connect, sync, desync, objToString, stringToObj}} //for nodejs
 catch{ //for browser
-  serve=function(){
-    let message="This SERVE function is not a browser side application\nCheck out https://npmjs.com/package/webject"
+  function warn(fnName){
+    let message=`This ${fnName} function is not a browser side application\nCheck out https://npmjs.com/package/webject`
     console.warn(message); alert(message)
   }
-  console.log("Oh, hi there >:D")
+  serve=()=>warn("SERVE")
+  sync=()=>warn("SYNC")
+  desync=()=>warn("DESYNC")
+  console.log("Part 1/2 loaded ^-^")
 }
