@@ -10,9 +10,9 @@
 /*---*/
 /*
 //for including my script with your html page(the line below)
-<script src="https://cdn.jsdelivr.net/npm/webject@1.1.0/webject.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/webject@1.1.1/webject.js"></script>
 //for including my script through browser console pasting
-(()=>{let script=document.createElement('script');script.src="https://cdn.jsdelivr.net/npm/webject@1.1.0/webject.js";document.head.appendChild(script)})()
+(()=>{let script=document.createElement('script');script.src="https://cdn.jsdelivr.net/npm/webject@1.1.1/webject.js";document.head.appendChild(script)})()
 //for github, git clone https://github.com/Y0ursTruly/webject.git and require('path/to/webject.js')
 //for npm, npm install webject and require('webject')
 */
@@ -25,7 +25,7 @@ catch{ //for browser
   var webSocket=WebSocket; var index=0
   webSocket.prototype.on=webSocket.prototype.addEventListener
   let script=document.createElement('script')
-  script.src="https://cdn.jsdelivr.net/npm/webject@1.1.0/serial.js"
+  script.src="https://cdn.jsdelivr.net/npm/webject@1.1.1/serial.js"
   document.head.appendChild(script)
 }
 
@@ -199,11 +199,16 @@ function serve(obj,server){ //serve an object(synchronous because this IS the se
 }
 
 //connect to an object
-async function connect(location,authToken){ //receive an object(asynchronous to wait for connection with server)
+async function connect(location,authToken,onFail){ //receive an object(asynchronous to wait for connection with server)
   if(typeof location!="string"||typeof authToken!="string"){throw new Error("BOTH location AND authToken MUST be STRINGS >:|")}
+  if(typeof onFail!="function"&&onFail){throw new Error("If you choose the optional parameter onFail, it must be a function >:|")}
   let obj={}; let toReturn=null
   let toReject=null; let s=null
-  let server=new webSocket(location)
+  let server=await new webSocket(location)
+  server.onerror=(err)=>{
+    console.error("Attempting to connect to a websocket using the location parameter produced the following error :/\n~",err.message)
+    if(onFail){onFail()} //if connecting fails, function is called(if given)
+  }
   let p=new Promise((r,j)=>{toReturn=r;toReject=j})
   function disconnectHandle(event,name){
     let code=event; let disconnectReason=null
@@ -212,9 +217,10 @@ async function connect(location,authToken){ //receive an object(asynchronous to 
     else if(code==1001){disconnectReason="authToken LOCKED: this is a correct key, but it takes no new connections 0_0"}
     else{disconnectReason="closed PURPOSEFULLY: check your location and token parameters, OR you got BOOTED :/"}
     let errorMessage=`connection with server is OVER due to event: ${name}\n${disconnectReason}`
-    if(toReturn){toReject(errorMessage)}else{console.warn(errorMessage)}
+    if(toReturn){toReject(errorMessage)}else{console.error(errorMessage)}
     /*if the promise is NOT fulfiled, reject.. else, warn*/
     clearInterval(s) //of course, cleaning out this interval
+    if(onFail){onFail()} //onFail function can be used for repeating task until connection
   }
   let staticString=""
   server.on('open',()=>{
