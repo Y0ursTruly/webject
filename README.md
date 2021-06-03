@@ -28,7 +28,7 @@ Now there are *TWO* main functions that make up the usage: `serve` and `connect`
 <br>*eg*: `let myWebject=serve(myObject)`
 <br>However you can *addToken* while passing in a different object to share that different object(each *authToken* can share a different object)
 <br>*eg*: `let myToken=myWebject.addToken(1,someDifferentObject) //leaving out second parameter would addToken for myObject by default`
-- **connect**: This is an *asynchronous* function would take in two arguments(*location* and *authToken*). Both of these are manditory, as you must know where the object is being served **AND** must have a valid *authToken* to access it
+- **connect**: This is an *asynchronous* function would take in two manditory arguments(*location* and *authToken*) and one optional argument(*onFail*). For the manditory ones, as you must know where the object is being served **AND** must have a valid *authToken* to access it. For the optional argument, *onFail*, it must be a function and example usage can be seen in *[onFailTesting.js](https://github.com/Y0ursTruly/webject/edit/main/Illustrations/onFailTesting.js)*
 <br>*eg*: `let mySharedObject=await connect('wss://example.com:8009',myGivenAuthToken)`
 - **sync**: This is a *synchronous* function with three arguments(*obj*, *filePath*, *spacing*). If the third argument is not provided, file saving from the object would be done without extra spacing(one chunked line). This function returns an interval ID for the interval it sets to write to specified *filePath* when the object changes
 - **desync**: This is a *synchronous* function that takes in one arguments(*syncID*). It clears the interval of ID *syncID* quite literally, however it does throw an error if it is an invalid *syncID*
@@ -69,7 +69,6 @@ However, as for the `serve` function itself, it returns some *utility* tools for
 <br>*eg*: `myWebject.removeListener("connect",myHandler)`
 
 # Updates
-- New Event for *share* function: This new event is called "edit". It activates on the change of an object that is **shared**(as in use of *addToken*)
-- New modules for file storage: These new modules are *sync* and *desync*. 
+- New Optional *onFail* parameter for the asynchronous *connect* function 
 
 <br>Well if you're all the way down here, my email is *[paulrytaylor@gmail.com](mailto:paulrytaylor@gmail.com)*
