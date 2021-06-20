@@ -69,6 +69,6 @@ However, as for the `serve` function itself, it returns some *utility* tools for
 <br>*eg*: `myWebject.removeListener("connect",myHandler)`
 
 # Updates
-- New Optional *onFail* parameter for the asynchronous *connect* function 
+- `['build']` parameter removed from *test* script
 
 <br>Well if you're all the way down here, my email is *[paulrytaylor@gmail.com](mailto:paulrytaylor@gmail.com)*
