@@ -2,8 +2,8 @@ let {spawn}=require('child_process')
 let log=(text)=>console.log('\x1b[1m\x1b[33m'+text+'\x1b[0m')
 async function exec(command){
   return await new Promise(resolve=>{
-    let options={stdio: 'inherit',env:process.env,cwd:undefined,shell:true}
-    let myChild=spawn(command,['build'],options)
+    let options={stdio:'inherit',env:process.env,cwd:undefined,shell:true}
+    let myChild=spawn(command,options)
     myChild.on('close',resolve)
   })
 }
