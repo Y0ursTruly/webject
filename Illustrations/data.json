@@ -1,0 +1,78 @@
+[
+    {
+        "path": [],
+        "value": {}
+    },
+    {
+        "path": [
+            "a"
+        ],
+        "value": {}
+    },
+    {
+        "path": [
+            "a",
+            "a1"
+        ],
+        "value": 1
+    },
+    {
+        "path": [
+            "a",
+            "a2"
+        ],
+        "value": {}
+    },
+    {
+        "path": [
+            "a",
+            "a2",
+            "a3"
+        ],
+        "value": 0
+    },
+    {
+        "path": [
+            "b"
+        ],
+        "value": {}
+    },
+    {
+        "path": [
+            "b",
+            "b1"
+        ],
+        "value": 2
+    },
+    {
+        "path": [
+            "c"
+        ],
+        "value": []
+    },
+    {
+        "path": [
+            "c",
+            "0"
+        ],
+        "value": 7
+    },
+    {
+        "path": [
+            "c",
+            "1"
+        ],
+        "value": 4
+    },
+    {
+        "path": [
+            "undefined"
+        ]
+    },
+    {
+        "path": [
+            "m"
+        ],
+        "reference": 0
+    }
+]

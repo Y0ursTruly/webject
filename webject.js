@@ -5,14 +5,14 @@
 //authLevel 2: clients with this authToken level can only ADD new entries to the shared object
 //authLevel 3: clients with this authToken level can modify the object in basically any way(adding, removing, modifying)
 /*---*/
-//do tell me if I should split authLevel 3 into 2 categories(my email is paulrytaylor@gmail.com)
-//these categories would be having authLevel 3 to have [add and modify] and then authLevel 4 would have [add, modify AND remove]
+//since you're reading here.. my email is paulrytaylor@gmail.com
+//do contact me if you have any questions >:D
 /*---*/
 /*
 //for including my script with your html page(the line below)
-<script src="https://cdn.jsdelivr.net/npm/webject@1.1.1/webject.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/webject@1.1.2/webject.js"></script>
 //for including my script through browser console pasting
-(()=>{let script=document.createElement('script');script.src="https://cdn.jsdelivr.net/npm/webject@1.1.1/webject.js";document.head.appendChild(script)})()
+(()=>{let script=document.createElement('script');script.src="https://cdn.jsdelivr.net/npm/webject@1.1.2/webject.js";document.head.appendChild(script)})()
 //for github, git clone https://github.com/Y0ursTruly/webject.git and require('path/to/webject.js')
 //for npm, npm install webject and require('webject')
 */
@@ -25,7 +25,7 @@ catch{ //for browser
   var webSocket=WebSocket; var index=0
   webSocket.prototype.on=webSocket.prototype.addEventListener
   let script=document.createElement('script')
-  script.src="https://cdn.jsdelivr.net/npm/webject@1.1.1/serial.js"
+  script.src="https://cdn.jsdelivr.net/npm/webject@1.1.2/serial.js"
   document.head.appendChild(script)
 }
 
@@ -59,7 +59,6 @@ function compare(str1,str2){ //str1 is the home obj, str2 is the client desired 
 //serve an object
 function serve(obj,server){ //serve an object(synchronous because this IS the server clients wait to connect to)
   if(typeof obj!="object"||obj==null){throw new Error("Parameter 'obj' MUST be an OBJECT >:|")}
-  const dontDeleteEntireObj=obj //just so that you can't delete the object entirely
   try{var ws=new webSocket.Server({server})}
   catch{
     try{var ws=new webSocket.Server({port:8009})}
@@ -68,13 +67,25 @@ function serve(obj,server){ //serve an object(synchronous because this IS the se
   var authTokens={}
   var levels={1:1,2:1,3:1}
   //utility functions begin
-  function addToken(authLevel,object){ //token generator
-    if(typeof object!="object"||obj==null){object=obj} //can share one object per authToken
+  function addToken(authLevel,object,specificToken){ //token generator
+    if(typeof object!="object"||object==null){object=obj} //can share one object per authToken
     if(!levels[authLevel]){
       throw new Error("INVALID AUTH LEVEL\nAuthorisation levels are 1, 2 and 3 :/")
     }
-    let authToken=randomChar(15)
-    authTokens[authToken]={authToken,authLevel,clients:[],object,locked:false,string:objToString(object)} //structure for each authToken object in authTokens
+    if(typeof specificToken!="string" && specificToken){
+      throw new Error("If specificToken parameter is used, it MUST be a string ;-;")
+    }
+    if(authTokens[specificToken]){
+      throw new Error("If specificToken parameter is used, it MUST be a UNIQUE token ;-;")
+    }
+    if(typeof specificToken=="string"){var authToken=specificToken} //specificToken chosen as authToken
+    else{
+      var authToken=randomChar(15) //random token generation(by default)
+      while(authTokens[authToken]){ authToken=randomChar(15) }
+      //so by now.. I've making sure that authToken is UNIQUE
+    }
+    authTokens[authToken]={authToken,authLevel,clients:[],object,locked:false,string:objToString(object)}
+    //above is the structure for each authToken object in authTokens
     let s=setInterval(()=>{
       let token=authTokens[authToken]
       if(!token){return clearInterval(s)}
@@ -120,6 +131,7 @@ function serve(obj,server){ //serve an object(synchronous because this IS the se
     var defaultPrevented=false
     let preventDefault=()=>defaultPrevented=true
     var customEvent={token,socket,type,lock,unlock,preventDefault}
+    customEvent.lock=lock.bind(customEvent); customEvent.unlock=unlock.bind(customEvent)
     let warn="an added listener produced the following error :/\n~"
     events[type].forEach(a=>{
       if(!defaultPrevented){
@@ -195,7 +207,11 @@ function serve(obj,server){ //serve an object(synchronous because this IS the se
     client.on('error',closeClient)
   })
   //websocket block end
-  return {authTokens,addToken,endToken,lock,unlock,addListener,endListener}
+  let toReturn={authTokens,addToken,endToken,lock,unlock,addListener,endListener}
+  Object.keys(toReturn).forEach(key=>{
+    if(typeof toReturn[key]=="function"){toReturn[key]=toReturn[key].bind(toReturn)}
+  })
+  return toReturn //the function binding you would've seen is to maintain the functions' purpose(even after destructuring)
 }
 
 //connect to an object

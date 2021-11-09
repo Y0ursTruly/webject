@@ -7,7 +7,8 @@ mainObj.m=mainObj; //example object(it's cyclic too)
   let myWebject=serve(mainObj) //I would let it make it's own server since I don't have one to give it to
   /*if you do already have a server, you can just pass it in through the second argument*/
   myWebject.addListener("connect",(ev)=>{
-    console.log(`connection with token ${ev.token.authToken} spotted >:}\n`); ev.lock() //will only activate once since lock activated
+    let {lock}=ev //destructuring example(function still works)
+    console.log(`connection with token ${ev.token.authToken} spotted >:}\n`); lock() //will only activate once since lock activated
     /*example use WITHOUT authToken parameter*/
   })
   

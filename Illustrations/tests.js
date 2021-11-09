@@ -23,4 +23,5 @@ async function example(toLog,exampleName){
   await example("No Re-Pointing Test(nested objects are instead modified)", "noRePointing")
   await example("Sync and Desync Test(writes to file on change of object)", "syncTesting")
   await example("On Fail Connection Test(retries using onFail function)", "onFailTesting")
+  await example("Manual Token Test(authTokens don't have to be random)", "manualToken")
 })()
