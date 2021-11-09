@@ -87,8 +87,9 @@ myWebject.authTokens[specificToken] //token that unwanted client uses
 .clients[indexOfUnwantedClient] //socket that unwanted client uses
 .close(1000) //terminate connection
 ```
-- *addToken*: The *correct* way to create an *authToken* that takes in a parameter *authLevel* or an optional second parameter *object* and returns the *authToken* with that level of authorisation. If you do use the second parameter, an *that* object would be shared since you can share a different object per token :D
+- *addToken*: The *correct* way to create an *authToken* that takes in a parameter *authLevel* or an optional second parameter *object* and returns the *authToken* with that level of authorisation, then a third optional paremeter of *specificToken*. If you do use the second parameter, an *that* object would be shared since you can share a different object per token :D
 <br>Needless to say, if you don't use the second parameter, it will default to the object chosen when the *serve* function was called
+<br>The third optional parameter is for setting an *authToken* **manually**, which adds further flexibility to this function
 - *endToken*: The *correct* way to remove an *authToken* that takes in a parameter *authToken* to remove it and close **all** connections that were to that token(yes, it kicks everyone who is connected with that token)
 - *lock*: This takes in the parameter *authToken* and will prevent further connections to that *authToken* while **NOT** removing clients already connected
 - *unlock*: This takes in the parameter *authToken* and enables further connections to that *authToken*(by default when you make a key it's unlocked)
