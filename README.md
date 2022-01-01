@@ -112,5 +112,21 @@ myWebject.authTokens[specificToken] //token that unwanted client uses
 
 # Updates
 - **Minimal** share/connect functionality(which is now default). This means that only the difference of the object is shared upon the object's change(so it's faster by a good bit)
+- **New Key** called *minimal* in each `authToken` structure
+```js
+{
+  ...,
+  "webject_dfae":{
+    authToken:"webject_dfae",
+    authLevel:1,
+    clients:[someSocket1,someSocket2],
+    object:theSharedObj,
+    locked:false,
+    string:objToString(theSharedObj),
+    minimal:true //this right here is the new key
+  },
+  ...,
+}
+```
 
 <br>Well if you're all the way down here, my email is *[paulrytaylor@gmail.com](mailto:paulrytaylor@gmail.com)*
