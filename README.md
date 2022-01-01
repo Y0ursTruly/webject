@@ -78,7 +78,7 @@ However, as for the `serve` function itself, it returns some *utility* tools for
 ```js
 {
   ...,
-  "webject_dfae":{
+  "webject_dfae":{ //one authToken object
     authToken:"webject_dfae",
     authLevel:1,
     clients:[someSocket1,someSocket2],
@@ -105,6 +105,17 @@ myWebject.authTokens[specificToken] //token that unwanted client uses
 - *lock*: This takes in the parameter *authToken* and will prevent further connections to that *authToken* while **NOT** removing clients already connected
 - *unlock*: This takes in the parameter *authToken* and enables further connections to that *authToken*(by default when you make a key it's unlocked)
 - *addListener*: This takes in 2 parameters(*event* which is a string and *yourReaction* which is a function). *yourReaction* receives an object with several different properties, including the lock and unlock functions(except you can activate them without an *authToken* and it will apply the lock to the event's *token*)
+<br>*object given to `yourReaction` function when used in `addListener` upon an event dispatch*
+```js
+{
+  token, //an authToken object
+  socket, //a websocket object
+  type, //event name(eg: "edit")
+  lock, //function to lock a specified token or the event's authToken
+  unlock, //function to unlock a specified token or the event's authToken
+  preventDefault //function to stop event propogation(no other listeners get called after one listener activtes this)
+}
+```
 <br>*eg*: `let myHandler=(ev)=>ev.lock(); myWebject.addListener("connect",myHandler)` would end up locking each *authToken* upon connection
 <br>There are a total of *THREE* valid values for *event* right now, namely *connect*, *disconnect* and *edit*. See *[eventsTesting.js](https://github.com/Y0ursTruly/webject/blob/main/Illustrations/eventsTesting.js)* and *[lockTesting.js](https://github.com/Y0ursTruly/webject/blob/main/Illustrations/lockTesting.js)* for examples
 - *endListener*: This takes in 2 parameters(*event* which is a string and *yourReaction* which is a function). If *yourReaction* exists in the array of *event*, it will be removed from the list
