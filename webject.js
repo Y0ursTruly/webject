@@ -10,9 +10,9 @@
 /*---*/
 /*
 //for including my script with your html page(the line below)
-<script src="https://cdn.jsdelivr.net/npm/webject@1.2.1/webject.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/webject@1.2.2/webject.js"></script>
 //for including my script through browser console pasting
-(()=>{let script=document.createElement('script');script.src="https://cdn.jsdelivr.net/npm/webject@1.2.1/webject.js";document.head.appendChild(script)})()
+(()=>{let script=document.createElement('script');script.src="https://cdn.jsdelivr.net/npm/webject@1.2.2/webject.js";document.head.appendChild(script)})()
 //for github, git clone https://github.com/Y0ursTruly/webject.git and require('path/to/webject.js')
 //for npm, npm install webject and require('webject')
 */
@@ -28,8 +28,15 @@ catch{ //for browser
   var webSocket=WebSocket; var index=0
   webSocket.prototype.on=webSocket.prototype.addEventListener
   let script=document.createElement('script')
-  script.src="https://cdn.jsdelivr.net/npm/webject@1.2.1/serial.js"
+  script.src="https://cdn.jsdelivr.net/npm/webject@1.2.2/serial.js"
   document.head.appendChild(script)
+  let s=setInterval(()=>{
+    if(window.stringToObj){
+      stringToObj=window.stringToObj
+      objToString=window.objToString
+      clearInterval(s)
+    }
+  })
 }
 
 let syncList={} //sync list for records of syncing
