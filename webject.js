@@ -10,9 +10,9 @@
 /*---*/
 /*
 //for including my script with your html page(the line below)
-<script src="https://cdn.jsdelivr.net/npm/webject@1.1.9/webject.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/webject@1.2.1/webject.js"></script>
 //for including my script through browser console pasting
-(()=>{let script=document.createElement('script');script.src="https://cdn.jsdelivr.net/npm/webject@1.1.9/webject.js";document.head.appendChild(script)})()
+(()=>{let script=document.createElement('script');script.src="https://cdn.jsdelivr.net/npm/webject@1.2.1/webject.js";document.head.appendChild(script)})()
 //for github, git clone https://github.com/Y0ursTruly/webject.git and require('path/to/webject.js')
 //for npm, npm install webject and require('webject')
 */
@@ -28,7 +28,7 @@ catch{ //for browser
   var webSocket=WebSocket; var index=0
   webSocket.prototype.on=webSocket.prototype.addEventListener
   let script=document.createElement('script')
-  script.src="https://cdn.jsdelivr.net/npm/webject@1.1.9/serial.js"
+  script.src="https://cdn.jsdelivr.net/npm/webject@1.2.1/serial.js"
   document.head.appendChild(script)
 }
 
@@ -316,8 +316,6 @@ function desync(syncID){
 try{module.exports={serve, connect, sync, desync, objToString, stringToObj}} //for nodejs
 catch{ //for browser
   window.connect=connect
-  window.objToString=objToString
-  window.stringToObj=stringToObj
   console.log("Part 1/2 loaded ^-^")
 }
 
