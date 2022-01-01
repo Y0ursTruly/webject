@@ -1,3 +1,7 @@
+(()=>{
+
+
+
 function mapToFile(m,files){var x=files
   if(!m||!m.length){return(files)}var errort=0
   m.forEach(a=>{if(x[a]){x=x[a]}else{errort=1}})
@@ -90,4 +94,12 @@ function stringToObj(string,obj,onlyDifference){
 
 
 try{module.exports={objToString,stringToObj}}
-catch(err){console.log("Part 2/2 loaded, LET'S GO >:D")}
+catch(err){
+  window.objToString=objToString
+  window.stringToObj=stringToObj
+  console.log("Part 2/2 loaded, LET'S GO >:D")
+}
+
+
+
+})()
