@@ -225,11 +225,11 @@ function serve(obj,server){ //serve an object(synchronous because this IS the se
 }
 
 //connect to an object
-async function connect(location,authToken,onFail,minimal){ //receive an object(asynchronous to wait for connection with server)
+async function connect(location,authToken,onFail,notMinimal){ //receive an object(asynchronous to wait for connection with server)
+  var minimal=!notMinimal //for every token, if minimal is true, data transit is faster(minimal is default)
   if(typeof location!="string"||typeof authToken!="string"){throw new Error("BOTH location AND authToken MUST be STRINGS >:|")}
   if(typeof onFail!="function"&&onFail){throw new Error("If you choose the optional parameter onFail, it must be a function >:|")}
-  let obj={}; let toReturn=null
-  let toReject=null; let s=null
+  let obj={}, toReturn=null, toReject=null, s=null
   let server=await new webSocket(location)
   server.onerror=(err)=>{
     console.error("Attempting to connect to a websocket using the location parameter produced the following error :/\n~",err.message)
