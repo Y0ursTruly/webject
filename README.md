@@ -23,10 +23,11 @@ You can even use the `connect` function from browser if you load a script tag fr
 <br>You can go to a *[LIVE WEB EXAMPLE](https://webject-example.paultaylor2.repl.co/)* (which hosts the equivalent of *[an example](https://github.com/Y0ursTruly/webject/blob/main/Illustrations/httpServerExample.js)*) then paste the following code `connect("wss://webject-example.paultaylor2.repl.co/",authToken).then(obj=>window.mySharedObj=obj)` and `mySharedObj` would be the *shared object*
 #
 Now there are *TWO* main functions that make up the usage: `serve` and `connect` but *SIX* in total, the other 4 being `sync`, `desync`, `objToString`, `stringToObj`
+<br>~~This applies for all functions I have, that if you enter falsish values(like null,0,"",false), the default actions would be taken(eg: `serve(myObject,null)` would have the same effect of `serve(myObject)`)~~
 <br>*eg*:`let {serve,connect}=require('webject')`
 - **serve**: This is a *synchonous* function that would take in two arguments(*obj* and *server*). If a server isn't provided, it will attempt to serve, however the *obj* argument is **NECESSARY** as it will be an object that you will share
 <br>*eg*: `let myWebject=serve(myObject)`
-<br>However, the *addToken* function is required to make a way for a client to share your object through a token you would give them
+<br>However, the *addToken* function is **required** to make a way for a client to share your object through a token you would give them
 <br>Moreover you can *addToken* while passing in a different object to share that different object(each *authToken* can share a different object)
 <br>*eg*:
 ```js
@@ -37,6 +38,12 @@ let myToken=myWebject.addToken(1,someDifferentObject) //leaving out second param
 ```js
 let myToken=myWebject.addToken(1,null,"my_key")
 //null/no value/undefined would mean sharing the original object from the serve function and "my_key" would be the value returned IF that is a unique token
+```
+<br>On top of that, in the newest addition so far, the default way of sharing the objects is in a **minimal** configuration(minimal as in it only shares the difference of the object upon change which makes it a good bit faster). However, just to keep options open, there is a **notMinimal** setting you can have(the slower but old versions' way of sharing the object)
+<br>*eg*:
+```js
+let myToken=myWebject.addToken(1,null,null,true) //the slower non-minimal way(versions BELOW 1.1.9)
+//the null values would mean that it does the default activities for those arguments(shares original myWebject object and generates a random token)
 ```
 - **connect**: This is an *asynchronous* function would take in two manditory arguments(*location* and *authToken*) and one optional argument(*onFail*). For the manditory ones, as you must know where the object is being served **AND** must have a valid *authToken* to access it. For the optional argument, *onFail*, it must be a function and example usage can be seen in *[onFailTesting.js](https://github.com/Y0ursTruly/webject/edit/main/Illustrations/onFailTesting.js)*
 <br>*eg*:
@@ -72,10 +79,11 @@ However, as for the `serve` function itself, it returns some *utility* tools for
   "webject_dfae":{
     authToken:"webject_dfae",
     authLevel:1,
-    clients[someSocket],
+    clients:[someSocket1,someSocket2],
     object:theSharedObj,
     locked:false,
-    string:objToString(theSharedObj)
+    string:objToString(theSharedObj),
+    minimal:true
   },
   ...,
 }
@@ -87,9 +95,10 @@ myWebject.authTokens[specificToken] //token that unwanted client uses
 .clients[indexOfUnwantedClient] //socket that unwanted client uses
 .close(1000) //terminate connection
 ```
-- *addToken*: The *correct* way to create an *authToken* that takes in a parameter *authLevel* or an optional second parameter *object* and returns the *authToken* with that level of authorisation, then a third optional paremeter of *specificToken*. If you do use the second parameter, an *that* object would be shared since you can share a different object per token :D
+- *addToken*: The *correct* way to create an *authToken* that takes in a parameter *authLevel* or an optional second parameter *object* and returns the *authToken* with that level of authorisation, then a third optional paremeter of *specificToken* and finally a fourth optional parameter of *nonMinimal*. If you do use the second parameter, an *that* object would be shared since you can share a different object per token :D
 <br>Needless to say, if you don't use the second parameter, it will default to the object chosen when the *serve* function was called
 <br>The third optional parameter is for setting an *authToken* **manually**, which adds further flexibility to this function
+<br>The fourth optional parameter is for taking off the default **minimal** sharing configuration(sharing only the difference upon change), which is faster but *not used* by versions **BELOW** 1.1.9
 - *endToken*: The *correct* way to remove an *authToken* that takes in a parameter *authToken* to remove it and close **all** connections that were to that token(yes, it kicks everyone who is connected with that token)
 - *lock*: This takes in the parameter *authToken* and will prevent further connections to that *authToken* while **NOT** removing clients already connected
 - *unlock*: This takes in the parameter *authToken* and enables further connections to that *authToken*(by default when you make a key it's unlocked)
@@ -100,7 +109,6 @@ myWebject.authTokens[specificToken] //token that unwanted client uses
 <br>*eg*: `myWebject.removeListener("connect",myHandler)`
 
 # Updates
-- The ability to *manually* set authKeys in the *addToken* function
-- Binding of inner auxiliary functions so that they should function after normal destructuring
+- **Minimal** share/connect functionality(which is now default). This means that only the difference of the object is shared upon the object's change(so it's faster by a good bit)
 
 <br>Well if you're all the way down here, my email is *[paulrytaylor@gmail.com](mailto:paulrytaylor@gmail.com)*
