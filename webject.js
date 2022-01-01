@@ -10,12 +10,15 @@
 /*---*/
 /*
 //for including my script with your html page(the line below)
-<script src="https://cdn.jsdelivr.net/npm/webject@1.1.2/webject.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/webject@1.1.9/webject.js"></script>
 //for including my script through browser console pasting
-(()=>{let script=document.createElement('script');script.src="https://cdn.jsdelivr.net/npm/webject@1.1.2/webject.js";document.head.appendChild(script)})()
+(()=>{let script=document.createElement('script');script.src="https://cdn.jsdelivr.net/npm/webject@1.1.9/webject.js";document.head.appendChild(script)})()
 //for github, git clone https://github.com/Y0ursTruly/webject.git and require('path/to/webject.js')
 //for npm, npm install webject and require('webject')
 */
+(()=>{
+
+
 
 try{ //for nodejs
   var webSocket=require('ws'); var fs=require('fs'); var index=0
@@ -25,35 +28,42 @@ catch{ //for browser
   var webSocket=WebSocket; var index=0
   webSocket.prototype.on=webSocket.prototype.addEventListener
   let script=document.createElement('script')
-  script.src="https://cdn.jsdelivr.net/npm/webject@1.1.2/serial.js"
+  script.src="https://cdn.jsdelivr.net/npm/webject@1.1.9/serial.js"
   document.head.appendChild(script)
 }
 
 let syncList={} //sync list for records of syncing
-let randList={} //this block here is for producing random UNIQUE keys
+let randList={} //this block here is for recording random UNIQUE keys
 var arr=["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t",
 "u","v","w","x","y","z",0,1,2,3,4,5,6,7,8,9,"!","@","$","&","*","(","-","_","=","+","[","]","~"]
 function randomChar(n){
-  var m=Math.random; var f=Math.floor; var newChar="webject_" //all authTokens begin with webject_
+  var m=Math.random, f=Math.floor, newChar="webject_" //all default authTokens begin with webject_
   function notUnique(){
-    for(var i=0; i<f(m()*100+n); i++){newChar+=arr[f(m()*arr.length)]}
-    return randList[newChar]&&newChar.length>0
+    for(var i=0; i<f(m()*100+n); i++){ newChar+=arr[f(m()*arr.length)] }
+    return randList[newChar]
   }
-  while(notUnique()){newChar=""} //try UNTIL it's unique
+  while(notUnique()){newChar="webject_"} //try UNTIL it's unique 
   randList[newChar]=1 //so that this key won't repeat
   return newChar
 }
 
 //this block here is for comparing 2 object strings(to see if level 2 authToken can apply their changes)
-function compare(str1,str2){ //str1 is the home obj, str2 is the client desired obj
-  var toReturn=true; var obj1=stringToObject(str1); var obj2=stringToObject(str2)
-  function findMatch(elem){
-    let path=JSON.stringify(elem.path); let location=null
-    obj2.forEach(a=>{ if(path==JSON.stringify(a.path)){location=a} })
-    if(location.value){return location}return obj2[location.reference] //because sometimes a path can be a reference
-  }
-  obj1.forEach(a=>{ if(findMatch(a).value!=a.value){toReturn=false} })
-  return toReturn
+function findMatch(elem,obj2){
+  let path=JSON.stringify(elem.path), location=null
+  obj2.forEach(a=>{ if(path==JSON.stringify(a.path)){location=a} })
+  if(!location){return location} //null
+  if(location.value){return location} //direct value
+  return obj2[location.reference] //because sometimes a path can be a reference
+}
+let cmp=(found,a)=>JSON.stringify(found.value)!=JSON.stringify(a.value)
+function compare(str1,str2,minimal){ //str1 is the home obj, str2 is the client desired obj
+  var toReturn=true, obj1=JSON.parse(str1), obj2=JSON.parse(str2)
+  obj1.forEach(a=>{
+    var found=findMatch(a,obj2)
+    if((found?cmp(found,a):true)&&!minimal){toReturn=false}
+    else if(found?cmp(found,a)||found.delete:false){toReturn=false}
+  })
+  obj1=null; obj2=null; return toReturn
 }
 
 //serve an object
@@ -64,10 +74,10 @@ function serve(obj,server){ //serve an object(synchronous because this IS the se
     try{var ws=new webSocket.Server({port:8009})}
     catch{throw new Error("UNABLE TO SERVE >:{")}
   }
-  var authTokens={}
-  var levels={1:1,2:1,3:1}
+  var authTokens={}, levels={1:1,2:1,3:1}
   //utility functions begin
-  function addToken(authLevel,object,specificToken){ //token generator
+  function addToken(authLevel,object,specificToken,notMinimal){ //token generator
+    var minimal=!notMinimal //for every token, if minimal is true, data transit is faster(minimal is default)
     if(typeof object!="object"||object==null){object=obj} //can share one object per authToken
     if(!levels[authLevel]){
       throw new Error("INVALID AUTH LEVEL\nAuthorisation levels are 1, 2 and 3 :/")
@@ -81,10 +91,10 @@ function serve(obj,server){ //serve an object(synchronous because this IS the se
     if(typeof specificToken=="string"){var authToken=specificToken} //specificToken chosen as authToken
     else{
       var authToken=randomChar(15) //random token generation(by default)
-      while(authTokens[authToken]){ authToken=randomChar(15) }
+      while(authTokens[authToken]){ authToken=randomChar(15) } //user tokens don't get stored in randList
       //so by now.. I've making sure that authToken is UNIQUE
     }
-    authTokens[authToken]={authToken,authLevel,clients:[],object,locked:false,string:objToString(object)}
+    authTokens[authToken]={authToken,authLevel,clients:[],object,locked:false,string:objToString(object),minimal}
     //above is the structure for each authToken object in authTokens
     let s=setInterval(()=>{
       let token=authTokens[authToken]
@@ -93,7 +103,7 @@ function serve(obj,server){ //serve an object(synchronous because this IS the se
       let staticString=objToString(object)
       if(token.string!=staticString){
         token.string=staticString; dispatch("edit",token,null) //if existing token but no connected client
-      }
+      } staticString=null
     },0)
     return authToken
   }
@@ -160,7 +170,7 @@ function serve(obj,server){ //serve an object(synchronous because this IS the se
     let clientMsgCount=0
     let s=null; let token=null
     let myObj=null //can share one object per authToken
-    let string=()=>objToString(myObj)
+    let string=(send)=>send&&token.minimal?objToString(myObj,null,null,token.string):objToString(myObj)
     let dispatchEdit=()=>dispatch("edit",token,client)
     function closeClient(){ //to ensure socket cleanup
       try{
@@ -173,8 +183,8 @@ function serve(obj,server){ //serve an object(synchronous because this IS the se
     function handleObj(){ //sends object data to client
       let currentString=string()
       if(currentString!=token.string){
-        token.string=currentString; dispatchEdit(); client.send(token.string)
-      }
+        client.send(string(token.minimal)); token.string=currentString; dispatchEdit()
+      } currentString=null
     }
     client.on('message',(msg)=>{
       if(clientMsgCount==0){ //first message is handshake
@@ -192,12 +202,12 @@ function serve(obj,server){ //serve an object(synchronous because this IS the se
         let myAuthLevel=token.authLevel //authLevel 1 would be ignored(can only view)
         if(myAuthLevel>1&&token.string!=msg){try{
           if(myAuthLevel==3){ //authLevel 3 unfiltered edits
-            stringToObj(msg,myObj); token.string=string(); dispatchEdit()
+            stringToObj(msg,myObj,token.minimal); token.string=string(); dispatchEdit()
           }
-          else if(compare(staticString,msg)){ //authLevel 2 can only add, therefore compare function
-            stringToObj(msg,myObj); token.string=string(); dispatchEdit()
+          else if(compare(token.string,msg,token.minimal)){ //authLevel 2 can only add, therefore compare function
+            stringToObj(msg,myObj,token.minimal); token.string=string(); dispatchEdit()
           }
-        }catch{/*purposeful or not, unwanted data can be sent and read with error*/}}
+        }catch(err){console.log(err)/*purposeful or not, unwanted data can be sent and read with error*/}}
       }
       clientMsgCount++
     })
@@ -215,7 +225,7 @@ function serve(obj,server){ //serve an object(synchronous because this IS the se
 }
 
 //connect to an object
-async function connect(location,authToken,onFail){ //receive an object(asynchronous to wait for connection with server)
+async function connect(location,authToken,onFail,minimal){ //receive an object(asynchronous to wait for connection with server)
   if(typeof location!="string"||typeof authToken!="string"){throw new Error("BOTH location AND authToken MUST be STRINGS >:|")}
   if(typeof onFail!="function"&&onFail){throw new Error("If you choose the optional parameter onFail, it must be a function >:|")}
   let obj={}; let toReturn=null
@@ -225,9 +235,9 @@ async function connect(location,authToken,onFail){ //receive an object(asynchron
     console.error("Attempting to connect to a websocket using the location parameter produced the following error :/\n~",err.message)
     if(onFail){onFail()} //if connecting fails, function is called(if given)
   }
-  let p=new Promise((r,j)=>{toReturn=r;toReject=j})
+  let p=new Promise((r,j)=>{toReturn=r; toReject=j}), staticString=""
   function disconnectHandle(event,name){
-    let code=event; let disconnectReason=null
+    let code=event, disconnectReason=null
     if(isNaN(code)){code=event.code}
     if(code==1006){disconnectReason="closed ABNORMALLY: either you or the server just LOST connection :|"}
     else if(code==1001){disconnectReason="authToken LOCKED: this is a correct key, but it takes no new connections 0_0"}
@@ -238,20 +248,23 @@ async function connect(location,authToken,onFail){ //receive an object(asynchron
     clearInterval(s) //of course, cleaning out this interval
     if(onFail){onFail()} //onFail function can be used for repeating task until connection
   }
-  let staticString=""
   server.on('open',()=>{
     let serverMsgCount=0
     server.send(authToken)
     function handleObj(){ //sends object data to server
       let currentString=objToString(obj)
-      if(currentString!=staticString){server.send(currentString)} //override only works if authToken's authLevel is 3
+      if(currentString!=staticString){ 
+        if(!minimal){ server.send(objToString(obj)) }
+        else{server.send( objToString(obj,null,null,staticString) )}
+      }
+      staticString=currentString; currentString=null
+      //override only works if authToken's authLevel is 3
       /*however there is no way for the client to know the authLevel of the authToken provided*/
     }
-    server.on('message',(message)=>{
-      let msg=message //for msg to be the same data(whether browser or nodejs)
+    server.on('message',(msg)=>{
       if(typeof msg=="object"){msg=msg.data} //this solves browser issues
       if(serverMsgCount==0){toReturn(true);toReturn=null;s=setInterval(handleObj,0)}
-      if(msg!=staticString){staticString=msg;stringToObj(msg,obj)} //server object data is absolute
+      stringToObj(msg,obj,minimal);staticString=objToString(obj) //server object data is absolute
       /*Modifying this code properly would reject the server rules, to modify the object to your liking*/
       /*BUT the only object you can meddle with would be the one on YOUR device(it's like if you disconnected)*/
       /*In addition to that, you wouldn't even be sharing the object, since rejecting the server is as good as leaving the socket*/
@@ -291,8 +304,7 @@ function sync(obj,filePath,spacing){
       catch(err){throw new Error(`This is strange.. suddenly, writing to ${filePath} is causing an error :?\n~`,err)}
     }
   },0)
-  syncList[syncID]=true
-  return syncID
+  syncList[syncID]=true; return syncID
 }
 
 //desyc object from filePath
@@ -303,12 +315,12 @@ function desync(syncID){
 
 try{module.exports={serve, connect, sync, desync, objToString, stringToObj}} //for nodejs
 catch{ //for browser
-  function warn(fnName){
-    let message=`This ${fnName} function is not a browser side application\nCheck out https://npmjs.com/package/webject`
-    console.warn(message); alert(message)
-  }
-  serve=()=>warn("SERVE")
-  sync=()=>warn("SYNC")
-  desync=()=>warn("DESYNC")
+  window.connect=connect
+  window.objToString=objToString
+  window.stringToObj=stringToObj
   console.log("Part 1/2 loaded ^-^")
 }
+
+
+
+})()
