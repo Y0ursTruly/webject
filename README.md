@@ -42,7 +42,7 @@ let myToken=myWebject.addToken(1,null,"my_key")
 <br>On top of that, in the newest addition so far, the default way of sharing the objects is in a **minimal** configuration(minimal as in it only shares the difference of the object upon change which makes it a good bit faster). However, just to keep options open, there is a **notMinimal** setting you can have(the slower but old versions' way of sharing the object)
 <br>*eg*:
 ```js
-let myToken=myWebject.addToken(1,null,null,true) //the slower non-minimal way(versions BELOW 1.2.1)
+let myToken=myWebject.addToken(1,null,null,true) //the slower non-minimal way(versions BELOW 1.2.2)
 //the null values would mean that it does the default activities for those arguments(shares original myWebject object and generates a random token)
 ```
 - **connect**: This is an *asynchronous* function would take in two manditory arguments(*location* and *authToken*) and two optional arguments(*onFail* and *notMinimal*). For the manditory ones, as you must know where the object is being served **AND** must have a valid *authToken* to access it.
@@ -52,7 +52,7 @@ let myToken=myWebject.addToken(1,null,null,true) //the slower non-minimal way(ve
 let mySharedObject=await connect('wss://example.com:8009',myGivenAuthToken)
 //port 8009 is the default port from this when the websocket is created(and the serve function isn't given a server parameter)
 ```
-<br>For the second optional argument, *notMinimal* is to connect to an object that is **NOT** using minimal configuration(the server side put a truthy value in their `addToken` value for its *notMinimal* argument **OR** uses a webject version below 1.2.1)
+<br>For the second optional argument, *notMinimal* is to connect to an object that is **NOT** using minimal configuration(the server side put a truthy value in their `addToken` value for its *notMinimal* argument **OR** uses a webject version below 1.2.2)
 - **sync**: This is a *synchronous* function with three arguments(*obj*, *filePath*, *spacing*). If the third argument is not provided, file saving from the object would be done without extra spacing(one chunked line). This function returns an interval ID for the interval it sets to write to specified *filePath* when the object changes
 - **desync**: This is a *synchronous* function that takes in one arguments(*syncID*). It clears the interval of ID *syncID* quite literally, however it does throw an error if it is an invalid *syncID*
 - **objToString**: This function is forwarded from *[serial.js](https://github.com/Y0ursTruly/webject/blob/main/serial.js)* and takes in an object and returns a stringified version of the object
@@ -100,7 +100,7 @@ myWebject.authTokens[specificToken] //token that unwanted client uses
 - *addToken*: The *correct* way to create an *authToken* that takes in a parameter *authLevel* or an optional second parameter *object* and returns the *authToken* with that level of authorisation, then a third optional paremeter of *specificToken* and finally a fourth optional parameter of *nonMinimal*. If you do use the second parameter, an *that* object would be shared since you can share a different object per token :D
 <br>Needless to say, if you don't use the second parameter, it will default to the object chosen when the *serve* function was called
 <br>The third optional parameter is for setting an *authToken* **manually**, which adds further flexibility to this function
-<br>The fourth optional parameter is for taking off the default **minimal** sharing configuration(sharing only the difference upon change), which is faster but *not used* by versions **BELOW** 1.2.1
+<br>The fourth optional parameter is for taking off the default **minimal** sharing configuration(sharing only the difference upon change), which is faster but *not used* by versions **BELOW** 1.2.2
 - *endToken*: The *correct* way to remove an *authToken* that takes in a parameter *authToken* to remove it and close **all** connections that were to that token(yes, it kicks everyone who is connected with that token)
 - *lock*: This takes in the parameter *authToken* and will prevent further connections to that *authToken* while **NOT** removing clients already connected
 - *unlock*: This takes in the parameter *authToken* and enables further connections to that *authToken*(by default when you make a key it's unlocked)
