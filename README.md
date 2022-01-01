@@ -45,12 +45,14 @@ let myToken=myWebject.addToken(1,null,"my_key")
 let myToken=myWebject.addToken(1,null,null,true) //the slower non-minimal way(versions BELOW 1.1.9)
 //the null values would mean that it does the default activities for those arguments(shares original myWebject object and generates a random token)
 ```
-- **connect**: This is an *asynchronous* function would take in two manditory arguments(*location* and *authToken*) and one optional argument(*onFail*). For the manditory ones, as you must know where the object is being served **AND** must have a valid *authToken* to access it. For the optional argument, *onFail*, it must be a function and example usage can be seen in *[onFailTesting.js](https://github.com/Y0ursTruly/webject/edit/main/Illustrations/onFailTesting.js)*
+- **connect**: This is an *asynchronous* function would take in two manditory arguments(*location* and *authToken*) and two optional arguments(*onFail* and *notMinimal*). For the manditory ones, as you must know where the object is being served **AND** must have a valid *authToken* to access it.
+<br>For the first optional argument, *onFail*, it must be a function and example usage can be seen in *[onFailTesting.js](https://github.com/Y0ursTruly/webject/edit/main/Illustrations/onFailTesting.js)*
 <br>*eg*:
 ```js
 let mySharedObject=await connect('wss://example.com:8009',myGivenAuthToken)
 //port 8009 is the default port from this when the websocket is created(and the serve function isn't given a server parameter)
 ```
+<br>For the second optional argument, *notMinimal* is to connect to an object that is **NOT** using minimal configuration(the server side put a truthy value in their `addToken` value for its *notMinimal* argument **OR** uses a webject version below 1.2.0)
 - **sync**: This is a *synchronous* function with three arguments(*obj*, *filePath*, *spacing*). If the third argument is not provided, file saving from the object would be done without extra spacing(one chunked line). This function returns an interval ID for the interval it sets to write to specified *filePath* when the object changes
 - **desync**: This is a *synchronous* function that takes in one arguments(*syncID*). It clears the interval of ID *syncID* quite literally, however it does throw an error if it is an invalid *syncID*
 - **objToString**: This function is forwarded from *[serial.js](https://github.com/Y0ursTruly/webject/blob/main/serial.js)* and takes in an object and returns a stringified version of the object
