@@ -22,8 +22,8 @@ Using `require` to get `webject.js` is the main idea..
 You can even use the `connect` function from browser if you load a script tag from [this url](https://cdn.jsdelivr.net/npm/webject@latest/webject.js)(look at the *[comments of webject.js](https://github.com/Y0ursTruly/webject/blob/main/webject.js#L13)* for example)
 <br>You can go to a *[LIVE WEB EXAMPLE](https://webject-example.paultaylor2.repl.co/)* (which hosts the equivalent of *[an example](https://github.com/Y0ursTruly/webject/blob/main/Illustrations/httpServerExample.js)*) then paste the following code `connect("wss://webject-example.paultaylor2.repl.co/",authToken).then(obj=>window.mySharedObj=obj)` and `mySharedObj` would be the *shared object*
 #
-<br>~~**DO NOTE**: This applies for all functions I have, that if you enter falsish values(like null,0,"",false), the default actions would be taken(eg: `serve(myObject,null)` would have the same effect of `serve(myObject)`)~~
-Now there are *TWO* main functions that make up the usage: `serve` and `connect` but *SIX* in total, the other 4 being `sync`, `desync`, `objToString`, `stringToObj`
+~~**DO NOTE**: This applies for all functions I have, that if you enter falsish values(like null,0,"",false), the default actions would be taken(eg: `serve(myObject,null)` would have the same effect of `serve(myObject)`)~~
+<br>Now there are *TWO* main functions that make up the usage: `serve` and `connect` but *SIX* in total, the other 4 being `sync`, `desync`, `objToString`, `stringToObj`
 <br>*eg*:`let {serve,connect}=require('webject')`
 - **serve**: This is a *synchonous* function that would take in two arguments(*obj* and *server*). If a server isn't provided, it will attempt to serve, however the *obj* argument is **NECESSARY** as it will be an object that you will share
 <br>*eg*: `let myWebject=serve(myObject)`
