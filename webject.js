@@ -10,9 +10,9 @@
 /*---*/
 /*
 //for including my script with your html page(the line below)
-<script src="https://cdn.jsdelivr.net/npm/webject@1.2.2/webject.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/webject@1.2.3/webject.js"></script>
 //for including my script through browser console pasting
-(()=>{let script=document.createElement('script');script.src="https://cdn.jsdelivr.net/npm/webject@1.2.2/webject.js";document.head.appendChild(script)})()
+(()=>{let script=document.createElement('script');script.src="https://cdn.jsdelivr.net/npm/webject@1.2.3/webject.js";document.head.appendChild(script)})()
 //for github, git clone https://github.com/Y0ursTruly/webject.git and require('path/to/webject.js')
 //for npm, npm install webject and require('webject')
 */
@@ -21,15 +21,16 @@
 
 
 try{ //for nodejs
-  var webSocket=require('ws'); var fs=require('fs'); var index=0
+  var webSocket=require('ws'); var fs=require('fs')
   var {objToString,stringToObj}=require(__dirname+'/serial.js')
 }
 catch{ //for browser
-  var webSocket=WebSocket; var index=0
+  var webSocket=WebSocket
   webSocket.prototype.on=webSocket.prototype.addEventListener
   let script=document.createElement('script')
-  script.src="https://cdn.jsdelivr.net/npm/webject@1.2.2/serial.js"
+  script.src="https://cdn.jsdelivr.net/npm/webject@1.2.3/serial.js"
   document.head.appendChild(script)
+  //objToString and stringToObj are undefined before this interval's if statement becomes true
   let s=setInterval(()=>{
     if(window.stringToObj){
       stringToObj=window.stringToObj
@@ -40,10 +41,11 @@ catch{ //for browser
 }
 
 let syncList={} //sync list for records of syncing
-let randList={} //this block here is for recording random UNIQUE keys
+let randList={} //this block here is for recording random UNIQUE keys(per webject instance)
+let map=new WeakMap() //the map is for only having 1 string AND interval per object
 var arr=["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t",
 "u","v","w","x","y","z",0,1,2,3,4,5,6,7,8,9,"!","@","$","&","*","(","-","_","=","+","[","]","~"]
-function randomChar(n){
+function randomChar(n){ //creates randomised tokens(that start with "webject_")
   var m=Math.random, f=Math.floor, newChar="webject_" //all default authTokens begin with webject_
   function notUnique(){
     for(var i=0; i<f(m()*100+n); i++){ newChar+=arr[f(m()*arr.length)] }
@@ -52,6 +54,49 @@ function randomChar(n){
   while(notUnique()){newChar="webject_"} //try UNTIL it's unique 
   randList[newChar]=1 //so that this key won't repeat
   return newChar
+}
+function dispatchEdit(myMap){
+  myMap.dispatchList.forEach(dispatch=>{
+    dispatch.tokenList.forEach(token=>dispatch("edit",token,null))
+  })
+}
+function addMapping(obj,token,dispatch){ //token is the authToken object
+  let myMap=map.get(obj)
+  if(!myMap){ //then set the mapping object
+    myMap={string:objToString(obj),tokenLists:{[token.authToken]:token},dispatchList:[dispatch]}
+    myMap.interval=setInterval(()=>{
+      let deleted=Object.values(myMap.tokenLists).every(token=>token.deleted)
+      if(deleted){ clearInterval(myMap.interval);map.delete(obj);return myMap=null }
+      let currentString=objToString(obj)
+      if(currentString!=myMap.string){
+        let toSend=objToString(obj,null,null,token.minimal?myMap.string:false)
+        Object.values(myMap.tokenLists).forEach(token=>{
+          token.clients.forEach(client=>client.send(toSend))
+        })
+        myMap.string=currentString; dispatchEdit(myMap)
+      }
+      currentString=null
+    },0)
+    myMap.sendEdit=(edit,sender)=>{
+      Object.values(myMap.tokenLists).forEach(token=>{
+        token.clients.forEach(client=>{ if(client!=sender){client.send(edit)} })
+      })
+      dispatchEdit(myMap)
+    }
+    map.set(obj,myMap)
+  }
+  else{
+    myMap.tokenLists[token.authToken]=token
+    if(!myMap.dispatchList.includes(dispatch)){myMap.dispatchList.push(dispatch)}
+  }
+}
+function createToken(authToken,authLevel,object,minimal,dispatch){ //creates the authToken object
+  const toReturn={authToken,authLevel,clients:[],object,locked:false,minimal}
+  addMapping(object,toReturn,dispatch) //creates map of object(if not done already) then appends the clients array
+  let getString=()=>map.get(object).string
+  let setString=(str)=>map.get(object).string=str
+  Object.defineProperty(toReturn,"string",{get:getString,set:setString})
+  return toReturn //to return is the structure for each authToken object in authTokens
 }
 
 //this block here is for comparing 2 object strings(to see if level 2 authToken can apply their changes)
@@ -83,7 +128,7 @@ function serve(obj,server){ //serve an object(synchronous because this IS the se
   }
   var authTokens={}, levels={1:1,2:1,3:1}
   //utility functions begin
-  function addToken(authLevel,object,specificToken,notMinimal){ //token generator
+  function addToken(authLevel,object,specificToken,notMinimal){ //authToken adder
     var minimal=!notMinimal //for every token, if minimal is true, data transit is faster(minimal is default)
     if(typeof object!="object"||object==null){object=obj} //can share one object per authToken
     if(!levels[authLevel]){
@@ -101,22 +146,16 @@ function serve(obj,server){ //serve an object(synchronous because this IS the se
       while(authTokens[authToken]){ authToken=randomChar(15) } //user tokens don't get stored in randList
       //so by now.. I've making sure that authToken is UNIQUE
     }
-    authTokens[authToken]={authToken,authLevel,clients:[],object,locked:false,string:objToString(object),minimal}
-    //above is the structure for each authToken object in authTokens
-    let s=setInterval(()=>{
-      let token=authTokens[authToken]
-      if(!token){return clearInterval(s)}
-      if(token.clients.length){return null}
-      let staticString=objToString(object)
-      if(token.string!=staticString){
-        token.string=staticString; dispatch("edit",token,null) //if existing token but no connected client
-      } staticString=null
-    },0)
+    authTokens[authToken]=createToken(authToken,authLevel,object,minimal,dispatch)
+    dispatch.tokenList.push(authTokens[authToken])
     return authToken
   }
-  function endToken(authToken){ //token remover
+  function endToken(authToken){ //authToken remover
     try{
+      authTokens[authToken].deleted=true
       authTokens[authToken].clients.forEach(a=>a.close(1000))
+      let index=dispatch.tokenList.indexOf(authTokens[authToken])
+      dispatch.tokenList.splice(index,1)
       return delete(authTokens[authToken])
     }
     catch{throw new Error("INVALID TOKEN(as in it doesn't exist) :/")}
@@ -130,6 +169,7 @@ function serve(obj,server){ //serve an object(synchronous because this IS the se
       try{this.token.locked=true}
       catch{throw new Error("PLEASE give an authToken which is of type STRING 0_0")}
     }
+    return true //action was successful
   }
   function unlock(authToken){
     if(authToken){
@@ -137,9 +177,13 @@ function serve(obj,server){ //serve an object(synchronous because this IS the se
       catch{throw new Error("PLEASE give a VALID authToken(given token doesn't exist) 0_0")}
     }
     else{
-      try{this.token.locked=false}
+      try{
+        if(this.token==null){return false} //action unsuccessful because token is null(due to failed authentication or token ended)
+        this.token.locked=false
+      }
       catch{throw new Error("PLEASE give an authToken which is of type STRING 0_0")}
     }
+    return true //action was successful
   }
   //utility functions end
   //event stuff begin
@@ -156,6 +200,7 @@ function serve(obj,server){ //serve an object(synchronous because this IS the se
       }
     })
   }
+  dispatch.tokenList=[] //for the mapping system, it is recorded, the tokens in dispatch "view"
   function addListener(event,yourReaction){
     if(typeof event!="string"||typeof yourReaction!="function"){
       throw new Error("The event parameter MUST be a STRING\nAND the yourReaction parameter MUST be a FUNCTION >:|")
@@ -174,34 +219,20 @@ function serve(obj,server){ //serve an object(synchronous because this IS the se
   //event stuff end
   //websocket block begin
   ws.on('connection',(client)=>{
-    let clientMsgCount=0
-    let s=null; let token=null
-    let myObj=null //can share one object per authToken
-    let string=(send)=>send&&token.minimal?objToString(myObj,null,null,token.string):objToString(myObj)
-    let dispatchEdit=()=>dispatch("edit",token,client)
+    let clientMsgCount=0, token=null, dispatchEdit=(msg)=>map.get(token.object).sendEdit(msg,client)
     function closeClient(){ //to ensure socket cleanup
       try{
         client.close(1000); let indexOfClient=token.clients.indexOf(client)
         if(indexOfClient!=-1){token.clients.splice(indexOfClient,1)}
       }catch{}
       dispatch("disconnect",token||null,client) //if endToken was used, the ev.token value would be null
-      clearInterval(s)
-    }
-    function handleObj(){ //sends object data to client
-      let currentString=string()
-      if(currentString!=token.string){
-        client.send(string(token.minimal)); token.string=currentString; dispatchEdit()
-      } currentString=null
     }
     client.on('message',(msg)=>{
       if(clientMsgCount==0){ //first message is handshake
         if(!authTokens[msg]){return client.close(1000)} //if you client doesn't have a valid token, they get closed
         if(authTokens[msg].locked){return client.close(1001)} //if authToken is locked, no more new connections
         token=authTokens[msg]
-        myObj=token.object
-        token.string=string()
         client.send(token.string)
-        s=setInterval(handleObj,0)
         token.clients.push(client)
         dispatch("connect",token,client)
       }
@@ -209,10 +240,10 @@ function serve(obj,server){ //serve an object(synchronous because this IS the se
         let myAuthLevel=token.authLevel //authLevel 1 would be ignored(can only view)
         if(myAuthLevel>1&&token.string!=msg){try{
           if(myAuthLevel==3){ //authLevel 3 unfiltered edits
-            stringToObj(msg,myObj,token.minimal); token.string=string(); dispatchEdit()
+            stringToObj(msg,token.object,token.minimal); token.string=string(); dispatchEdit(msg)
           }
           else if(compare(token.string,msg,token.minimal)){ //authLevel 2 can only add, therefore compare function
-            stringToObj(msg,myObj,token.minimal); token.string=string(); dispatchEdit()
+            stringToObj(msg,token.object,token.minimal); token.string=string(); dispatchEdit(msg)
           }
         }catch(err){console.log(err)/*purposeful or not, unwanted data can be sent and read with error*/}}
       }
