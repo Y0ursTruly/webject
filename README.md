@@ -122,23 +122,7 @@ myWebject.authTokens[specificToken] //token that unwanted client uses
 <br>*eg*: `myWebject.removeListener("connect",myHandler)`
 
 # Updates
-- **Minimal** share/connect functionality(which is now default). This means that only the difference of the object is shared upon the object's change(so it's faster by a good bit)
-- **New Key** called *minimal* in each `authToken` structure
-```js
-{
-  ...,
-  "webject_dfae":{
-    authToken:"webject_dfae",
-    authLevel:1,
-    clients:[someSocket1,someSocket2],
-    object:theSharedObj,
-    locked:false,
-    string:objToString(theSharedObj),
-    minimal:true //this right here is the new key
-  },
-  ...,
-}
-```
-- **Less Junk** on the web(the extra variables and functions other than the exports are no longer polluted on the `window`)
+- **Less Memory Usage**: for each UNIQUE shared object, there is only ONE interval checking and storing ONE stringified version of the object
+<br>before, it was one string and interval per added token and an object can be shared over several tokens and over several instances of webject, so less strings = less memory and less intervals = less processing
 
 <br>Well if you're all the way down here, my email is *[paulrytaylor@gmail.com](mailto:paulrytaylor@gmail.com)*
