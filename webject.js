@@ -10,9 +10,9 @@
 /*---*/
 /*
 //for including my script with your html page(the line below)
-<script src="https://cdn.jsdelivr.net/npm/webject@1.2.3/webject.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/webject@1.2.34/webject.js"></script>
 //for including my script through browser console pasting
-(()=>{let script=document.createElement('script');script.src="https://cdn.jsdelivr.net/npm/webject@1.2.3/webject.js";document.head.appendChild(script)})()
+(()=>{let script=document.createElement('script');script.src="https://cdn.jsdelivr.net/npm/webject@1.2.34/webject.js";document.head.appendChild(script)})()
 //for github, git clone https://github.com/Y0ursTruly/webject.git and require('path/to/webject.js')
 //for npm, npm install webject and require('webject')
 */
@@ -28,7 +28,7 @@ catch{ //for browser
   var webSocket=WebSocket
   webSocket.prototype.on=webSocket.prototype.addEventListener
   let script=document.createElement('script')
-  script.src="https://cdn.jsdelivr.net/npm/webject@1.2.3/serial.js"
+  script.src="https://cdn.jsdelivr.net/npm/webject@1.2.34/serial.js"
   document.head.appendChild(script)
   //objToString and stringToObj are undefined before this interval's if statement becomes true
   let s=setInterval(()=>{
