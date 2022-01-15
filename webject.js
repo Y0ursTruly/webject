@@ -240,10 +240,10 @@ function serve(obj,server){ //serve an object(synchronous because this IS the se
         let myAuthLevel=token.authLevel //authLevel 1 would be ignored(can only view)
         if(myAuthLevel>1&&token.string!=msg){try{
           if(myAuthLevel==3){ //authLevel 3 unfiltered edits
-            stringToObj(msg,token.object,token.minimal); token.string=string(); dispatchEdit(msg)
+            stringToObj(msg,token.object,token.minimal); token.string=objToString(token.object); dispatchEdit(msg)
           }
           else if(compare(token.string,msg,token.minimal)){ //authLevel 2 can only add, therefore compare function
-            stringToObj(msg,token.object,token.minimal); token.string=string(); dispatchEdit(msg)
+            stringToObj(msg,token.object,token.minimal); token.string=objToString(token.object); dispatchEdit(msg)
           }
         }catch(err){console.log(err)/*purposeful or not, unwanted data can be sent and read with error*/}}
       }
