@@ -122,7 +122,6 @@ myWebject.authTokens[specificToken] //token that unwanted client uses
 <br>*eg*: `myWebject.removeListener("connect",myHandler)`
 
 # Updates
-- **Less Memory Usage**: for each UNIQUE shared object, there is only ONE interval checking and storing ONE stringified version of the object
-<br>before, it was one string and interval per added token and an object can be shared over several tokens and over several instances of webject, so less strings = less memory and less intervals = less processing
+- **minor but embarrasing bug fixed**: it wasn't crashing any instance in testing or hindering any capability but there were uncaught errors being generated in an asynchronous due to a variable literally not being defined ;-;
 
 <br>Well if you're all the way down here, my email is *[paulrytaylor@gmail.com](mailto:paulrytaylor@gmail.com)*
