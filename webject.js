@@ -1,4 +1,4 @@
-//when sharing an object there are three authorisation levels
+//-when sharing an object there are three authorisation levels
 //remember, making tokens is as easy as myWebject.addToken(authLevel)
 /*---*/
 //authLevel 1: clients with this authToken level can only view the shared object
