@@ -10,9 +10,19 @@
 /*---*/
 /*
 //for including my script with your html page(the line below)
-<script src="https://cdn.jsdelivr.net/npm/webject@1.2.4/webject.js"></script>
+<script src="https://raw.githubusercontent.com/Y0ursTruly/webject/master/webject.js"></script>
 //for including my script through browser console pasting
-(()=>{let script=document.createElement('script');script.src="https://cdn.jsdelivr.net/npm/webject@1.2.34/webject.js";document.head.appendChild(script)})()
+(()=>{
+  let script=document.createElement('script')
+  script.src="https://raw.githubusercontent.com/Y0ursTruly/webject/master/webject.js"
+  //when webject is ready, window would have the webject functions (stringToObj,objToString,connect)
+  Object.defineProperty(window,'connect',{set:value=>{
+    Object.defineProperty(window,'connect',{value})
+    //over here, webject is ready for your browser tab, meaning that you can use webject functions
+    //for instance, you can replace this line calling a function that uses webject
+  },configurable:false})
+  document.head.appendChild(script)
+})()
 //for github, git clone https://github.com/Y0ursTruly/webject.git and require('path/to/webject.js')
 //for npm, npm install webject and require('webject')
 */
@@ -27,17 +37,6 @@ try{ //for nodejs
 catch{ //for browser
   var webSocket=WebSocket
   webSocket.prototype.on=webSocket.prototype.addEventListener
-  let script=document.createElement('script')
-  script.src="https://cdn.jsdelivr.net/npm/webject@1.2.4/serial.js"
-  document.head.appendChild(script)
-  //objToString and stringToObj are undefined before this interval's if statement becomes true
-  let s=setInterval(()=>{
-    if(window.stringToObj){
-      stringToObj=window.stringToObj
-      objToString=window.objToString
-      clearInterval(s)
-    }
-  })
 }
 
 let syncList={} //sync list for records of syncing
@@ -352,8 +351,14 @@ function desync(syncID){
 
 try{module.exports={serve, connect, sync, desync, objToString, stringToObj}} //for nodejs
 catch{ //for browser
-  window.connect=connect
   console.log("Part 1/2 loaded ^-^")
+  let script=document.createElement('script')
+  script.src="https://raw.githubusercontent.com/Y0ursTruly/webject/master/serial.js"
+  Object.defineProperty(window,'stringToObj',{set:value=>{
+    Object.defineProperty(window,'stringToObj',{value})
+    window.connect=connect
+  },configurable:false})
+  document.head.appendChild(script)
 }
 
 
