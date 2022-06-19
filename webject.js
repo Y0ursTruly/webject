@@ -351,7 +351,7 @@ function desync(syncID){
 try{module.exports={serve, connect, sync, desync, objToString, stringToObj}} //for nodejs
 catch{ //for browser
   console.log("Part 1/2 loaded ^-^")
-  fetch("https://raw.githubusercontent.com/Y0ursTruly/webject/master/webject.js").then(x=>x.text().then(eval))
+  fetch("https://raw.githubusercontent.com/Y0ursTruly/webject/master/serial.js").then(x=>x.text().then(eval))
   Object.defineProperty(window,'stringToObj',{set:value=>{
     Object.defineProperty(window,'stringToObj',{value})
     window.connect=connect
