@@ -20,7 +20,7 @@
     Object.defineProperty(window,'connect',{value})
     //over here, webject is ready for your browser tab, meaning that you can use webject functions
     //for instance, you can replace this line calling a function that uses webject
-  },configurable:false})
+  },configurable:true})
   document.head.appendChild(script)
 })()
 //for github, git clone https://github.com/Y0ursTruly/webject.git and require('path/to/webject.js')
@@ -357,7 +357,7 @@ catch{ //for browser
   Object.defineProperty(window,'stringToObj',{set:value=>{
     Object.defineProperty(window,'stringToObj',{value})
     window.connect=connect
-  },configurable:false})
+  },configurable:true})
   document.head.appendChild(script)
 }
 
