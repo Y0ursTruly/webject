@@ -13,15 +13,14 @@
 <script src="https://raw.githubusercontent.com/Y0ursTruly/webject/master/webject.js"></script>
 //for including my script through browser console pasting
 (()=>{
-  let script=document.createElement('script')
-  script.src="https://raw.githubusercontent.com/Y0ursTruly/webject/master/webject.js"
+  //yes eval the github script because CORB blocks githubusercontent.com
+  fetch("https://raw.githubusercontent.com/Y0ursTruly/webject/master/webject.js").then(x=>x.text().then(eval))
   //when webject is ready, window would have the webject functions (stringToObj,objToString,connect)
   Object.defineProperty(window,'connect',{set:value=>{
     Object.defineProperty(window,'connect',{value})
     //over here, webject is ready for your browser tab, meaning that you can use webject functions
     //for instance, you can replace this line calling a function that uses webject
   },configurable:true})
-  document.head.appendChild(script)
 })()
 //for github, git clone https://github.com/Y0ursTruly/webject.git and require('path/to/webject.js')
 //for npm, npm install webject and require('webject')
@@ -352,13 +351,11 @@ function desync(syncID){
 try{module.exports={serve, connect, sync, desync, objToString, stringToObj}} //for nodejs
 catch{ //for browser
   console.log("Part 1/2 loaded ^-^")
-  let script=document.createElement('script')
-  script.src="https://raw.githubusercontent.com/Y0ursTruly/webject/master/serial.js"
+  fetch("https://raw.githubusercontent.com/Y0ursTruly/webject/master/webject.js").then(x=>x.text().then(eval))
   Object.defineProperty(window,'stringToObj',{set:value=>{
     Object.defineProperty(window,'stringToObj',{value})
     window.connect=connect
   },configurable:true})
-  document.head.appendChild(script)
 }
 
 
