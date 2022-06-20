@@ -40,7 +40,7 @@ catch{ //for browser
 }
 
 let syncList={} //sync list for records of syncing
-let randList={} //this block here is for recording random UNIQUE keys(per webject instance)
+let randList={} //this block here is for recording random UNIQUE keys
 let map=new WeakMap() //the map is for only having 1 string AND interval per object
 var arr=["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t",
 "u","v","w","x","y","z",0,1,2,3,4,5,6,7,8,9,"!","@","$","&","*","(","-","_","=","+","[","]","~"]
@@ -55,14 +55,14 @@ function randomChar(n){ //creates randomised tokens(that start with "webject_")
   return newChar
 }
 function dispatchEdit(myMap){
-  myMap.dispatchList.forEach(dispatch=>{
-    dispatch.tokenList.forEach(token=>dispatch("edit",token,null))
+  myMap.dispatchList.forEach((_,dispatch)=>{
+    dispatch.tokenList.forEach((_,token)=>dispatch("edit",token,null))
   })
 }
 function addMapping(obj,token,dispatch){ //token is the authToken object
   let myMap=map.get(obj)
   if(!myMap){ //then set the mapping object
-    myMap={string:objToString(obj),tokenLists:{[token.authToken]:token},dispatchList:[dispatch]}
+    myMap={string:objToString(obj),tokenLists:{[token.authToken]:token},dispatchList:new Map([[dispatch,1]])}
     myMap.interval=setInterval(()=>{
       let deleted=Object.values(myMap.tokenLists).every(token=>token.deleted)
       if(deleted){ clearInterval(myMap.interval);map.delete(obj);return myMap=null }
@@ -70,7 +70,7 @@ function addMapping(obj,token,dispatch){ //token is the authToken object
       if(currentString!=myMap.string){
         let toSend=objToString(obj,token.minimal?myMap.string:false)
         Object.values(myMap.tokenLists).forEach(token=>{
-          token.clients.forEach(client=>client.send(toSend))
+          token.clients.forEach((_,client)=>client.send(toSend))
         })
         myMap.string=currentString; dispatchEdit(myMap)
       }
@@ -78,7 +78,7 @@ function addMapping(obj,token,dispatch){ //token is the authToken object
     },0)
     myMap.sendEdit=(edit,sender)=>{
       Object.values(myMap.tokenLists).forEach(token=>{
-        token.clients.forEach(client=>{ if(client!=sender){client.send(edit)} })
+        token.clients.forEach((_,client)=>{ if(client!=sender){client.send(edit)} })
       })
       dispatchEdit(myMap)
     }
@@ -86,11 +86,11 @@ function addMapping(obj,token,dispatch){ //token is the authToken object
   }
   else{
     myMap.tokenLists[token.authToken]=token
-    if(!myMap.dispatchList.includes(dispatch)){myMap.dispatchList.push(dispatch)}
+    if(!myMap.dispatchList.get(dispatch)){myMap.dispatchList.set(dispatch,1)}
   }
 }
 function createToken(authToken,authLevel,object,minimal,dispatch){ //creates the authToken object
-  const toReturn={authToken,authLevel,clients:[],object,locked:false,minimal}
+  const toReturn={authToken,authLevel,clients:new Map(),object,locked:false,minimal}
   addMapping(object,toReturn,dispatch) //creates map of object(if not done already) then appends the clients array
   let getString=()=>map.get(object).string
   let setString=(str)=>map.get(object).string=str
@@ -99,20 +99,31 @@ function createToken(authToken,authLevel,object,minimal,dispatch){ //creates the
 }
 
 //this block here is for comparing 2 object strings(to see if level 2 authToken can apply their changes)
-function findMatch(elem,obj2){
-  let path=JSON.stringify(elem.path), location=null
-  obj2.forEach(a=>{ if(path==JSON.stringify(a.path)){location=a} })
+function pathCompare(elem1,elem2){ //this tests if 2 elements have the same path
+  if(elem2[0][0]===0){throw new TypeError("authLevel 2 does not accept delete instructions")}
+  let path1=typeof elem1[0][0]==="number"?elem1[0].splice(1):elem1[0]
+  let path2=typeof elem2[0][0]==="number"?elem2[0].splice(1):elem2[0]
+  if(path1.length!==path2.length){return false}
+  for(let i=0;i<elem1[0].length;i++){
+    if(elem1[0][i]!==elem2[0][i]){return false}
+  }
+  return true
+}
+function findMatch(elem,obj2){ //this tests if elem with same path exists in client desired obj
+  let location=null
+  obj2.forEach(a=>{
+    if(pathCompare(elem,a)){location=a}
+  })
   if(!location){return location} //null
-  if(location.value){return location} //direct value
+  if(typeof location[0][0]!=="number"){return location} //direct value
   return obj2[location.reference] //because sometimes a path can be a reference
 }
-let cmp=(found,a)=>JSON.stringify(found.value)!=JSON.stringify(a.value)
+let cmp=(found,a)=>JSON.stringify(found[1])!==JSON.stringify(a[1])
 function compare(str1,str2,minimal){ //str1 is the home obj, str2 is the client desired obj
   var toReturn=true, obj1=JSON.parse(str1), obj2=JSON.parse(str2)
   obj1.forEach(a=>{
-    var found=findMatch(a,obj2)
+    try{var found=findMatch(a,obj2)}catch{toReturn=false}
     if((found?cmp(found,a):true)&&!minimal){toReturn=false}
-    else if(found?cmp(found,a)||found.delete:false){toReturn=false}
   })
   obj1=null; obj2=null; return toReturn
 }
@@ -136,25 +147,21 @@ function serve(obj,server){ //serve an object(synchronous because this IS the se
     if(typeof specificToken!="string" && specificToken){
       throw new Error("If specificToken parameter is used, it MUST be a string ;-;")
     }
-    if(authTokens[specificToken]){
+    if(authTokens[specificToken]||randList[specificToken]){
       throw new Error("If specificToken parameter is used, it MUST be a UNIQUE token ;-;")
     }
     if(typeof specificToken=="string"){var authToken=specificToken} //specificToken chosen as authToken
-    else{
-      var authToken=randomChar(15) //random token generation(by default)
-      while(authTokens[authToken]){ authToken=randomChar(15) } //user tokens don't get stored in randList
-      //so by now.. I've making sure that authToken is UNIQUE
-    }
+    else{var authToken=randomChar(15)} //random token generation(by default)
+    
     authTokens[authToken]=createToken(authToken,authLevel,object,minimal,dispatch)
-    dispatch.tokenList.push(authTokens[authToken])
+    dispatch.tokenList.set(authTokens[authToken],1)
     return authToken
   }
   function endToken(authToken){ //authToken remover
     try{
       authTokens[authToken].deleted=true
-      authTokens[authToken].clients.forEach(a=>a.close(1000))
-      let index=dispatch.tokenList.indexOf(authTokens[authToken])
-      dispatch.tokenList.splice(index,1)
+      authTokens[authToken].clients.forEach((_,a)=>a.close(1000))
+      dispatch.tokenList.delete(authTokens[authToken])
       return delete(authTokens[authToken])
     }
     catch{throw new Error("INVALID TOKEN(as in it doesn't exist) :/")}
@@ -199,7 +206,7 @@ function serve(obj,server){ //serve an object(synchronous because this IS the se
       }
     })
   }
-  dispatch.tokenList=[] //for the mapping system, it is recorded, the tokens in dispatch "view"
+  dispatch.tokenList=new Map() //for the mapping system, it is recorded, the tokens in dispatch "view"
   function addListener(event,yourReaction){
     if(typeof event!="string"||typeof yourReaction!="function"){
       throw new Error("The event parameter MUST be a STRING\nAND the yourReaction parameter MUST be a FUNCTION >:|")
@@ -218,20 +225,22 @@ function serve(obj,server){ //serve an object(synchronous because this IS the se
   //event stuff end
   //websocket block begin
   ws.on('connection',(client)=>{
+    let close=client.close.bind(client)
     let clientMsgCount=0, token=null, dispatchEdit=(msg)=>map.get(token.object).sendEdit(msg,client)
     function closeClient(){ //to ensure socket cleanup
-      let indexOfClient=token.clients.indexOf(client)
-      if(indexOfClient!=-1){token.clients.splice(indexOfClient,1)}
-      try{ client.close(1000) }catch{} //the client could be closed already
+      let toReturn=close(...arguments)
+      token?token.clients.delete(client)
       dispatch("disconnect",token||null,client) //if endToken was used, the ev.token value would be null
+      return toReturn
     }
+    client.close=closeClient
     client.on('message',(msg)=>{
       if(clientMsgCount==0){ //first message is handshake
         if(!authTokens[msg]){return client.close(1000)} //if you client doesn't have a valid token, they get closed
         if(authTokens[msg].locked){return client.close(1001)} //if authToken is locked, no more new connections
         token=authTokens[msg]
         client.send(token.string)
-        token.clients.push(client)
+        token.clients.set(client,1)
         dispatch("connect",token,client)
       }
       else{ //listen to client if authLevel > 1 AND serial difference
@@ -245,7 +254,7 @@ function serve(obj,server){ //serve an object(synchronous because this IS the se
           }
         }catch(err){console.log(err)/*purposeful or not, unwanted data can be sent and read with error*/}}
       }
-      clientMsgCount++
+      clientMsgCount?0:clientMsgCount++ //I rather not count to infinity
     })
     //in any of the 3 below cases, it's time for this client to get closed
     client.on('disconnect',closeClient)
@@ -349,7 +358,12 @@ function desync(syncID){
   delete(syncList[syncID]); clearInterval(syncID)
 }
 
-try{module.exports={serve, connect, sync, desync, objToString, stringToObj}} //for nodejs
+try{ //for nodejs
+  if(!global.webject){
+    global.webject={serve, connect, sync, desync, objToString, stringToObj}
+  }
+  module.exports=global.webject
+}
 catch{ //for browser
   console.log("Part 1/2 loaded ^-^")
   let script=document.createElement('script')
