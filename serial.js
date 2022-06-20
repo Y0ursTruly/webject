@@ -130,6 +130,7 @@ function objToString(obj,cmpStr,spacing,checkClone){ //concept from object clone
 function stringToObj(string,obj,onlyDifference){
   if(typeof obj!="object"){obj={}}
   var info=parse(string.toString()), arr=[obj]
+  info[0][1]=obj //to point to the object in question
   info.forEach(item=>{
     const type=typeof item[0][0]==="number"?item[0][0]:2
     //type: 0(delete), 1(reference), 2(value)
