@@ -229,7 +229,7 @@ function serve(obj,server){ //serve an object(synchronous because this IS the se
     let clientMsgCount=0, token=null, dispatchEdit=(msg)=>map.get(token.object).sendEdit(msg,client)
     function closeClient(){ //to ensure socket cleanup
       let toReturn=close(...arguments)
-      token?token.clients.delete(client)
+      token?token.clients.delete(client):0
       dispatch("disconnect",token||null,client) //if endToken was used, the ev.token value would be null
       return toReturn
     }
