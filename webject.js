@@ -69,7 +69,7 @@ function addMapping(obj,token,dispatch){ //token is the authToken object
       if(deleted){ clearInterval(myMap.interval);map.delete(obj);return myMap=null }
       let currentString=objToString(obj)
       if(currentString!=myMap.string){
-        let toSend=objToString(obj,null,null,token.minimal?myMap.string:false)
+        let toSend=objToString(obj,token.minimal?myMap.string:false)
         Object.values(myMap.tokenLists).forEach(token=>{
           token.clients.forEach(client=>client.send(toSend))
         })
@@ -292,7 +292,7 @@ async function connect(location,authToken,onFail,notMinimal){ //receive an objec
       let currentString=objToString(obj)
       if(currentString!=staticString){ 
         if(!minimal){ server.send(objToString(obj)) }
-        else{server.send( objToString(obj,null,null,staticString) )}
+        else{server.send( objToString(obj,staticString) )}
       }
       staticString=currentString; currentString=null
       //override only works if authToken's authLevel is 3
@@ -326,12 +326,12 @@ function sync(obj,filePath,spacing){
   //error block 2 begin
   try{fs.writeFileSync(filePath,fs.readFileSync(filePath))}
   catch{
-    try{fs.writeFileSync(filePath,objToString(obj,spacing))}
+    try{fs.writeFileSync(filePath,objToString(obj,null,spacing))}
     catch(err){throw new Error("Using this filePath caused an error ;-;\n~",err)}
   }
   //error block 2 end
   
-  var string=()=>objToString(obj,spacing)
+  var string=()=>objToString(obj,null,spacing)
   var staticString=string()
   const syncID=setInterval(()=>{
     let testString=string()
