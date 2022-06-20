@@ -91,7 +91,9 @@ function objToString(obj,cmpStr,spacing,checkClone){ //concept from object clone
         }
         return map=map1
       }
-      arr2.push([[...map],obj[a]])
+      if(obj[a]===undefined){ arr2.push([[...map]]) }
+      //JSON turns undefined into null so to preserve the value, I put nothing :D
+      else{ arr2.push([[...map],obj[a]]) }
       arr.set({},length++); arr1.push(map) //so that index reference works
       newObj[a]=obj[a]; map=map1
     })
