@@ -42,6 +42,13 @@ function includes(obj,key){
   return existing?existing.enumerable:false
 }
 
+//see if 2 objects are the "same"(to determine if to overwrite or not)
+function same(obj1,obj2){
+  let condition1=typeof(obj1)===typeof(obj2)
+  let condition2=(obj1 instanceof Array)===(obj2 instanceof Array)
+  return condition1&&condition2&&typeof obj1==="object"
+}
+
 //this function takes a path and an object and returns the value based on that path
 function mapToFile(map,files){
   var x=files //pointer for recursion
@@ -130,8 +137,8 @@ function objToString(obj,cmpStr,spacing,checkClone){ //concept from object clone
 function stringToObj(string,obj,onlyDifference){
   if(typeof obj!="object"){obj={}}
   var info=parse(string.toString()), arr=[obj]
-  info[0][1]=obj //to point to the object in question
-  info.forEach(item=>{
+  info.forEach((item,i)=>{
+    if(!item[0].length){return item[1]=obj}
     const type=typeof item[0][0]==="number"?item[0][0]:2
     //type: 0(delete), 1(reference), 2(value)
     let error="Invalid data provided from whatever the stringToObj received"
@@ -146,8 +153,13 @@ function stringToObj(string,obj,onlyDifference){
       }
       delete parent[child]
     }
-    else if(type===1){parent[child]=info[ item[1] ][1]}
-    else if(type===2){parent[child]=item[1]}
+    else if(type===1){
+      if(item[1]>i){throw new RangeError(error)}
+      parent[child]=info[ item[1] ][1]
+    }
+    else if(type===2){
+      same(parent[child],item[1])? item[1]=parent[child]: parent[child]=item[1]
+    }
     else{throw new RangeError(error)}
   })
   return obj
