@@ -13,7 +13,6 @@
 <script src="https://cdn.jsdelivr.net/npm/webject@1.2.9/webject.js"></script>
 //for including my script through browser console pasting
 (()=>{
-  //yes eval the github script because CORB blocks githubusercontent.com
   let script=document.createElement('script')
   script.src="https://cdn.jsdelivr.net/npm/webject@1.2.9/webject.js"
   //when webject is ready, window would have the webject functions (stringToObj,objToString,connect)
