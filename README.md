@@ -1,5 +1,6 @@
 # webject
 Share Objects Online with the power of websockets. Keys, Values AND references. Webject is short for Web Object and it really is a system for sharing objects on the web. Someone can host an object, and make authTokens for others online to share this object
+<br>~~All Versions BELOW `1.2.9` are now depreciated because *[serial.js](https://github.com/Y0ursTruly/webject/blob/main/serial.js)* has been updated~~
 # Installation
 Three ways
 - *[Download Github Package as ZIP](https://github.com/Y0ursTruly/webject/archive/refs/heads/main.zip)*
@@ -39,7 +40,7 @@ let myToken=myWebject.addToken(1,someDifferentObject) //leaving out second param
 let myToken=myWebject.addToken(1,null,"my_key")
 //null/no value/undefined would mean sharing the original object from the serve function and "my_key" would be the value returned IF that is a unique token
 ```
-<br>On top of that, in the newest addition so far, the default way of sharing the objects is in a **minimal** configuration(minimal as in it only shares the difference of the object upon change which makes it a good bit faster). However, just to keep options open, there is a **notMinimal** setting you can have(the slower but old versions' way of sharing the object)
+<br>On top of that, the default way of sharing the objects is in a **minimal** configuration(minimal as in it only shares the difference of the object upon change which makes it a good bit faster). However, just to keep options open, there is a **notMinimal** setting you can have(the slower but old versions' way of sharing the object)
 <br>*eg*:
 ```js
 let myToken=myWebject.addToken(1,null,null,true) //the slower non-minimal way(versions BELOW 1.2.2)
@@ -122,6 +123,6 @@ myWebject.authTokens[specificToken] //token that unwanted client uses
 <br>*eg*: `myWebject.removeListener("connect",myHandler)`
 
 # Updates
-- **minor but embarrasing bug fixed**: it wasn't crashing any instance in testing or hindering any capability but there were uncaught errors being generated in an asynchronous due to a variable literally not being defined ;-;
+- **optimisation of serial.js**: *[serial.js](https://github.com/Y0ursTruly/webject/blob/main/serial.js)* now uses a different(way shorter) `objToString` format.
 
 <br>Well if you're all the way down here, my email is *[paulrytaylor@gmail.com](mailto:paulrytaylor@gmail.com)*
