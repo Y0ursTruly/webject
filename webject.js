@@ -233,7 +233,7 @@ function serve(obj,server){ //serve an object(synchronous because this IS the se
       dispatch("disconnect",token||null,client) //if endToken was used, the ev.token value would be null
       return toReturn
     }
-    client.close=closeClient
+    client.close=closeClient //every socket.close that I call leads to this
     client.on('message',(msg)=>{
       if(clientMsgCount==0){ //first message is handshake
         if(!authTokens[msg]){return client.close(1000)} //if you client doesn't have a valid token, they get closed
