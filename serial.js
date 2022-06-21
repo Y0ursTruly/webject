@@ -134,7 +134,7 @@ function objToString(obj,cmpStr,spacing,checkClone){ //concept from object clone
 }
 
 
-function stringToObj(string,obj,onlyDifference){
+function stringToObj(string,obj){
   if(typeof obj!="object"){obj={}}
   var info=parse(string.toString()), arr=[obj]
   info.forEach((item,i)=>{
@@ -147,12 +147,7 @@ function stringToObj(string,obj,onlyDifference){
     let parent=mapToFile(parentMap,obj)
     let child=item[0][item[0].length-1]
     //if the above 3 variables are thrown errors, the function received erroneous data
-    if(type===0){
-      if(!onlyDifference){
-        throw new TypeError("Deleting is not permitted since onlyDifference is false; "+error)
-      }
-      delete parent[child]
-    }
+    if(type===0){delete parent[child]}
     else if(type===1){
       if(item[1]>i){throw new RangeError(error)}
       parent[child]=info[ item[1] ][1]
