@@ -32,6 +32,6 @@
   },
   "homepage": "https://github.com/Y0ursTruly/webject#readme",
   "dependencies": {
-    "ws": "^7.4.4"
+    "ws": "^7.4.6"
   }
 }
