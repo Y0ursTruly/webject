@@ -68,7 +68,7 @@ function addMapping(obj,token,dispatch){ //token is the authToken object
       if(deleted){ clearInterval(myMap.interval);map.delete(obj);return myMap=null }
       let currentString=objToString(obj)
       if(currentString!=myMap.string){
-        let toSend=objToString(obj,token.minimal?myMap.string:false)
+        let toSend=objToString(obj,myMap.string)
         Object.values(myMap.tokenLists).forEach(token=>{
           token.clients.forEach((_,client)=>client.send(toSend))
         })
@@ -89,8 +89,8 @@ function addMapping(obj,token,dispatch){ //token is the authToken object
     if(!myMap.dispatchList.get(dispatch)){myMap.dispatchList.set(dispatch,1)}
   }
 }
-function createToken(authToken,authLevel,object,minimal,dispatch){ //creates the authToken object
-  const toReturn={authToken,authLevel,clients:new Map(),object,locked:false,minimal}
+function createToken(authToken,authLevel,object,dispatch){ //creates the authToken object
+  const toReturn={authToken,authLevel,clients:new Map(),object,locked:false}
   addMapping(object,toReturn,dispatch) //creates map of object(if not done already) then appends the clients array
   let getString=()=>map.get(object).string
   let setString=(str)=>map.get(object).string=str
@@ -119,12 +119,11 @@ function findMatch(elem,obj2){ //this tests if elem with same path exists in cli
   return obj2[location.reference] //because sometimes a path can be a reference
 }
 let cmp=(found,a)=>JSON.stringify(found[1])!==JSON.stringify(a[1])
-function compare(str1,str2,minimal){ //str1 is the home obj, str2 is the client desired obj
+function compare(str1,str2){ //str1 is the home obj, str2 is the client desired obj
   var toReturn=true, obj1=JSON.parse(str1), obj2=JSON.parse(str2)
   obj1.forEach(a=>{
     try{var found=findMatch(a,obj2)}catch{toReturn=false}
-    if((found?cmp(found,a):false)&&minimal){toReturn=false}
-    else if(found?cmp(found,a):true&&!minimal){toReturn=false}
+    if(found?cmp(found,a):false){toReturn=false}
   })
   obj1=null; obj2=null; return toReturn
 }
@@ -139,8 +138,7 @@ function serve(obj,server){ //serve an object(synchronous because this IS the se
   }
   var authTokens={}, levels={1:1,2:1,3:1}
   //utility functions begin
-  function addToken(authLevel,object,specificToken,notMinimal){ //authToken adder
-    var minimal=!notMinimal //for every token, if minimal is true, data transit is faster(minimal is default)
+  function addToken(authLevel,object,specificToken){ //authToken adder
     if(typeof object!="object"||object==null){object=obj} //can share one object per authToken
     if(!levels[authLevel]){
       throw new Error("INVALID AUTH LEVEL\nAuthorisation levels are 1, 2 and 3 :/")
@@ -154,7 +152,7 @@ function serve(obj,server){ //serve an object(synchronous because this IS the se
     if(typeof specificToken=="string"){var authToken=specificToken} //specificToken chosen as authToken
     else{var authToken=randomChar(15)} //random token generation(by default)
     
-    authTokens[authToken]=createToken(authToken,authLevel,object,minimal,dispatch)
+    authTokens[authToken]=createToken(authToken,authLevel,object,dispatch)
     dispatch.tokenList.set(authTokens[authToken],1)
     return authToken
   }
@@ -248,10 +246,10 @@ function serve(obj,server){ //serve an object(synchronous because this IS the se
         let myAuthLevel=token.authLevel //authLevel 1 would be ignored(can only view)
         if(myAuthLevel>1&&token.string!=msg){try{
           if(myAuthLevel==3){ //authLevel 3 unfiltered edits
-            stringToObj(msg,token.object,token.minimal); token.string=objToString(token.object); dispatchEdit(msg)
+            stringToObj(msg,token.object); token.string=objToString(token.object); dispatchEdit(msg)
           }
-          else if(compare(token.string,msg,token.minimal)){ //authLevel 2 can only add, therefore compare function
-            stringToObj(msg,token.object,token.minimal); token.string=objToString(token.object); dispatchEdit(msg)
+          else if(compare(token.string,msg)){ //authLevel 2 can only add, therefore compare function
+            stringToObj(msg,token.object); token.string=objToString(token.object); dispatchEdit(msg)
           }
         }catch(err){console.log(err)/*purposeful or not, unwanted data can be sent and read with error*/}}
       }
@@ -271,8 +269,7 @@ function serve(obj,server){ //serve an object(synchronous because this IS the se
 }
 
 //connect to an object
-async function connect(location,authToken,onFail,notMinimal){ //receive an object(asynchronous to wait for connection with server)
-  var minimal=!notMinimal //for every token, if minimal is true, data transit is faster(minimal is default)
+async function connect(location,authToken,onFail){ //receive an object(asynchronous to wait for connection with server)
   if(typeof location!="string"||typeof authToken!="string"){throw new Error("BOTH location AND authToken MUST be STRINGS >:|")}
   if(typeof onFail!="function"&&onFail){throw new Error("If you choose the optional parameter onFail, it must be a function >:|")}
   let obj={}, toReturn=null, toReject=null, s=null
@@ -299,9 +296,8 @@ async function connect(location,authToken,onFail,notMinimal){ //receive an objec
     server.send(authToken)
     function handleObj(){ //sends object data to server
       let currentString=objToString(obj)
-      if(currentString!=staticString){ 
-        if(!minimal){ server.send(objToString(obj)) }
-        else{server.send( objToString(obj,staticString) )}
+      if(currentString!=staticString){
+        server.send( objToString(obj,staticString) )
       }
       staticString=currentString; currentString=null
       //override only works if authToken's authLevel is 3
@@ -309,12 +305,12 @@ async function connect(location,authToken,onFail,notMinimal){ //receive an objec
     }
     server.on('message',(msg)=>{
       if(typeof msg=="object"){msg=msg.data} //this solves browser issues
-      if(serverMsgCount==0){toReturn(true);toReturn=null;s=setInterval(handleObj,0)}
-      stringToObj(msg,obj,minimal);staticString=objToString(obj) //server object data is absolute
+      if(serverMsgCount===0){toReturn(true);toReturn=null;s=setInterval(handleObj,0)}
+      stringToObj(msg,obj);staticString=objToString(obj) //server object data is absolute
       /*Modifying this code properly would reject the server rules, to modify the object to your liking*/
       /*BUT the only object you can meddle with would be the one on YOUR device(it's like if you disconnected)*/
       /*In addition to that, you wouldn't even be sharing the object, since rejecting the server is as good as leaving the socket*/
-      serverMsgCount++
+      serverMsgCount?0:serverMsgCount++ //I rather not count to infinity
     })
     server.on('disconnect',(ev)=>disconnectHandle(ev,'disconnect'))
     server.on('close',(ev)=>disconnectHandle(ev,'close'))
