@@ -123,7 +123,8 @@ function compare(str1,str2,minimal){ //str1 is the home obj, str2 is the client 
   var toReturn=true, obj1=JSON.parse(str1), obj2=JSON.parse(str2)
   obj1.forEach(a=>{
     try{var found=findMatch(a,obj2)}catch{toReturn=false}
-    if((found?cmp(found,a):true)&&!minimal){toReturn=false}
+    if((found?cmp(found,a):false)&&minimal){toReturn=false}
+    else if(found?cmp(found,a):true&&!minimal){toReturn=false}
   })
   obj1=null; obj2=null; return toReturn
 }
@@ -227,11 +228,11 @@ function serve(obj,server){ //serve an object(synchronous because this IS the se
   ws.on('connection',(client)=>{
     let close=client.close.bind(client)
     let clientMsgCount=0, token=null, dispatchEdit=(msg)=>map.get(token.object).sendEdit(msg,client)
-    function closeClient(){ //to ensure socket cleanup
-      let toReturn=close(...arguments)
+    function closeClient(n){ //to ensure socket cleanup
       token?token.clients.delete(client):0
-      dispatch("disconnect",token||null,client) //if endToken was used, the ev.token value would be null
-      return toReturn
+      dispatch("disconnect",token,client) //if endToken was used, the ev.token value would be null
+      if(typeof n==="number"){ try{return close(...arguments)}catch{return true} }
+      else{ try{return close(1000)}catch{return true} }
     }
     client.close=closeClient //every socket.close that I call leads to this
     client.on('message',(msg)=>{

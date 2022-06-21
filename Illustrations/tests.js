@@ -24,4 +24,5 @@ async function example(toLog,exampleName){
   await example("Sync and Desync Test(writes to file on change of object)", "syncTesting")
   await example("On Fail Connection Test(retries using onFail function)", "onFailTesting")
   await example("Manual Token Test(authTokens don't have to be random)", "manualToken")
+  await example("AuthToken Level 2 Test(only adding new keys)","authLevel2")
 })()
