@@ -1,6 +1,7 @@
 # webject
 Share Objects Online with the power of websockets. Keys, Values AND references. Webject is short for Web Object and it really is a system for sharing objects on the web. Someone can host an object, and make authTokens for others online to share this object
-<br>~~All Versions BELOW `1.2.9` are now depreciated because *[serial.js](https://github.com/Y0ursTruly/webject/blob/main/serial.js)* has been updated~~
+<br>
+- **Please note**: All Versions BELOW `1.2.9` are now depreciated because *[serial.js](https://github.com/Y0ursTruly/webject/blob/main/serial.js)* has been updated but **please use `^1.3.0`** because the `1.2.9` does not work properly on browser
 # Installation
 Three ways
 - *[Download Github Package as ZIP](https://github.com/Y0ursTruly/webject/archive/refs/heads/main.zip)*
@@ -10,7 +11,8 @@ Three ways
 - For the serialisation/deserialisation recursive object cloner that I made for fun a while back I modified to return a "log" which can be translated to an object even with correct referencing
 - As for the logic of the sharing, the person who would *`serve`* objects is in control and can *GRANT* different *levels* of access to people who *`connect`* through a system of *authTokens* that the person who did the *`serve`* also has tools to manage
 - For sharing this object(the "medium"/method), I create a websocket using the nodejs module `ws`. It will try to use a server(a parameter you give) and if it fails(like if you gave no server parameter), it would then selfhost the socket
-- As to the datatypes shared, basically the values of all *keys* in an object(**BESIDES FUNCTIONS**). This is because functions are based on context and I don't have a way *for now*, to replicate a function's context
+- As to the datatypes shared, everything that [JSON](https://www.geeksforgeeks.org/json-data-types/) deals with AND `undefined` values AND [circular objects](https://www.akinjide.me/2018/circular-reference-in-javascript/)
+<br>~~Support for more data types coming soon~~
 - For the various parts of this system, do check out *[ILLUSTATIONS](https://github.com/Y0ursTruly/webject/tree/main/Illustrations)* for examples :D
 
 # Usage
@@ -23,7 +25,7 @@ Using `require` to get `webject.js` is the main idea..
 You can even use the `connect` function from browser if you load a script tag from [this url](https://cdn.jsdelivr.net/npm/webject@latest/webject.js)(look at the *[comments of webject.js](https://github.com/Y0ursTruly/webject/blob/main/webject.js#L13)* for example)
 <br>You can go to a *[LIVE WEB EXAMPLE](https://webject-example.paultaylor2.repl.co/)* (which hosts the equivalent of *[an example](https://github.com/Y0ursTruly/webject/blob/main/Illustrations/httpServerExample.js)*) then paste the following code `connect("wss://webject-example.paultaylor2.repl.co/",authToken).then(obj=>window.mySharedObj=obj)` and `mySharedObj` would be the *shared object*
 #
-~~**DO NOTE**: This applies for all functions I have, that if you enter falsish values(like null,0,"",false,undefined), the default actions would be taken as if you never input anything into that argument(eg: `serve(myObject,null)` would have the same effect of `serve(myObject)`)~~
+**DO NOTE**: This applies for all functions I have, that if you enter falsish values(like `null,0,"",false,undefined`), the default actions would be taken as if you never input anything into that argument(eg: `serve(myObject,null)` would have the same effect of `serve(myObject)`)
 <br>Now there are *TWO* main functions that make up the usage: `serve` and `connect` but *SIX* in total, the other 4 being `sync`, `desync`, `objToString`, `stringToObj`
 <br>*eg*:`let {serve,connect}=require('webject')`
 # Modules
@@ -116,6 +118,6 @@ However, as for the `serve` function itself, it returns some *utility* tools for
 # Updates
 - **optimisation of serial.js**: *[serial.js](https://github.com/Y0ursTruly/webject/blob/main/serial.js)* now uses a different(way shorter) `objToString` format.
 - **removed non-minimal option**: this was a legacy option ~~but nobody uses this yet anyway and the update of `serial.js` makes it incompatible with the lower versions so I'm just ripping off the bandage~~
-- **optimisation of webject.js**: A lot of the instances of `Array` in *[webject.js](https://github.com/Y0ursTruly/webject/blob/main/webject.js)* have been changed to instances of [Map](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map)
+- **optimisation of webject.js**: A lot of the instances of [Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array) in *[webject.js](https://github.com/Y0ursTruly/webject/blob/main/webject.js)* have been changed to instances of [Map](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map)
 
 <br>Well if you're all the way down here, my email is *[paulrytaylor@gmail.com](mailto:paulrytaylor@gmail.com)*

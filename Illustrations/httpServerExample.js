@@ -4,7 +4,7 @@ let lvl1Token=null; let myOnlineDomain="webject-example.paultaylor2.repl.co/" //
 var myServer=(require('http'))
 .createServer((req,res)=>res.end(
   `<script>window.authToken="${lvl1Token}"</script>
-  <script src="https://cdn.jsdelivr.net/npm/webject@1.2.9/webject.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/webject@1.3.0/webject.js"></script>
   <p>You should see 2 logs made to the console(ctrl+shift+i)</p>
   <br><p>Next, paste the following code(by the time you pop up inspect tools, the 2 logs would be made most likely)</p>
   <br><i><b>connect("wss://${myOnlineDomain}",authToken).then(obj=>window.mySharedObj=obj)</b></i>
@@ -33,7 +33,7 @@ mainObj.m=mainObj; //example object(it's cyclic too)
   //it shows the number of people connected
   let clientCount=0
   setInterval(()=>{ //every 5 seconds show the client count
-    let currentCount=myWebject.authTokens[viewKey].clients.length
+    let currentCount=myWebject.authTokens[viewKey].clients.size
     if(clientCount==currentCount){return;}
     clientCount=currentCount
     console.log("client-count:",clientCount)
