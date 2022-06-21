@@ -82,7 +82,7 @@ However, as for the `serve` function itself, it returns some *utility* tools for
   "webject_dfae":{ //one authToken object
     authToken:"webject_dfae",
     authLevel:1,
-    clients:[someSocket1,someSocket2],
+    clients:Map[someSocket1=>1,someSocket2=>1],
     object:theSharedObj,
     locked:false,
     string:objToString(theSharedObj),
@@ -91,13 +91,8 @@ However, as for the `serve` function itself, it returns some *utility* tools for
   ...,
 }
 ```
-<br>so to kick a client would be something like
 
-```js
-myWebject.authTokens[specificToken] //token that unwanted client uses
-.clients[indexOfUnwantedClient] //socket that unwanted client uses
-.close(1000) //terminate connection
-```
+<br>
 - *addToken*: The *correct* way to create an *authToken* that takes in a parameter *authLevel* or an optional second parameter *object* and returns the *authToken* with that level of authorisation, then a third optional paremeter of *specificToken* and finally a fourth optional parameter of *nonMinimal*. If you do use the second parameter, an *that* object would be shared since you can share a different object per token :D
 <br>Needless to say, if you don't use the second parameter, it will default to the object chosen when the *serve* function was called
 <br>The third optional parameter is for setting an *authToken* **manually**, which adds further flexibility to this function
