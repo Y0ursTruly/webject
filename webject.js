@@ -67,7 +67,7 @@ function addMapping(obj,token,dispatch){ //token is the authToken object
       let deleted=Object.values(myMap.tokenLists).every(token=>token.deleted)
       if(deleted){ clearInterval(myMap.interval);map.delete(obj);return myMap=null }
       let currentString=objToString(obj)
-      if(currentString!=myMap.string){
+      if(currentString!==myMap.string){
         let toSend=objToString(obj,myMap.string)
         Object.values(myMap.tokenLists).forEach(token=>{
           token.clients.forEach((_,client)=>client.send(toSend))
@@ -78,7 +78,7 @@ function addMapping(obj,token,dispatch){ //token is the authToken object
     },0)
     myMap.sendEdit=(edit,sender)=>{
       Object.values(myMap.tokenLists).forEach(token=>{
-        token.clients.forEach((_,client)=>{ if(client!=sender){client.send(edit)} })
+        token.clients.forEach((_,client)=>{ if(client!==sender){client.send(edit)} })
       })
       dispatchEdit(myMap)
     }
@@ -130,7 +130,7 @@ function compare(str1,str2){ //str1 is the home obj, str2 is the client desired 
 
 //serve an object
 function serve(obj,server){ //serve an object(synchronous because this IS the server clients wait to connect to)
-  if(typeof obj!="object"||obj==null){throw new Error("Parameter 'obj' MUST be an OBJECT >:|")}
+  if(typeof obj!=="object"||obj===null){throw new Error("Parameter 'obj' MUST be an OBJECT >:|")}
   try{var ws=new webSocket.Server({server})}
   catch{
     try{var ws=new webSocket.Server({port:8009})}
@@ -139,17 +139,17 @@ function serve(obj,server){ //serve an object(synchronous because this IS the se
   var authTokens={}, levels={1:1,2:1,3:1}
   //utility functions begin
   function addToken(authLevel,object,specificToken){ //authToken adder
-    if(typeof object!="object"||object==null){object=obj} //can share one object per authToken
+    if(typeof object!=="object"||object===null){object=obj} //can share one object per authToken
     if(!levels[authLevel]){
       throw new Error("INVALID AUTH LEVEL\nAuthorisation levels are 1, 2 and 3 :/")
     }
-    if(typeof specificToken!="string" && specificToken){
+    if(typeof specificToken!=="string" && specificToken){
       throw new Error("If specificToken parameter is used, it MUST be a string ;-;")
     }
     if(authTokens[specificToken]||randList[specificToken]){
       throw new Error("If specificToken parameter is used, it MUST be a UNIQUE token ;-;")
     }
-    if(typeof specificToken=="string"){var authToken=specificToken} //specificToken chosen as authToken
+    if(typeof specificToken==="string"){var authToken=specificToken} //specificToken chosen as authToken
     else{var authToken=randomChar(15)} //random token generation(by default)
     
     authTokens[authToken]=createToken(authToken,authLevel,object,dispatch)
@@ -207,14 +207,14 @@ function serve(obj,server){ //serve an object(synchronous because this IS the se
   }
   dispatch.tokenList=new Map() //for the mapping system, it is recorded, the tokens in dispatch "view"
   function addListener(event,yourReaction){
-    if(typeof event!="string"||typeof yourReaction!="function"){
+    if(typeof event!=="string"||typeof yourReaction!=="function"){
       throw new Error("The event parameter MUST be a STRING\nAND the yourReaction parameter MUST be a FUNCTION >:|")
     }
     if(!events[event]){throw new Error("That event DOES NOT EXIST :|")}
     events[event].push(yourReaction)
   }
   function endListener(event,yourReaction){
-    if(typeof event!="string"||typeof yourReaction!="function"){
+    if(typeof event!=="string"||typeof yourReaction!=="function"){
       throw new Error("The event parameter MUST be a STRING\nAND the yourReaction parameter MUST be a FUNCTION >:|")
     }
     if(!events[event]){throw new Error("That event DOES NOT EXIST :|")}
@@ -224,17 +224,30 @@ function serve(obj,server){ //serve an object(synchronous because this IS the se
   //event stuff end
   //websocket block begin
   ws.on('connection',(client)=>{
-    let close=client.close.bind(client)
+    let close=client.close.bind(client), ping=null, lastPing=Number(new Date()), alreadyClosed=false
     let clientMsgCount=0, token=null, dispatchEdit=(msg)=>map.get(token.object).sendEdit(msg,client)
-    function closeClient(n){ //to ensure socket cleanup
+    function closeClient(n,now){ //to ensure socket cleanup
+      clearInterval(ping) //clearing this interval
       token?token.clients.delete(client):0
       dispatch("disconnect",token,client) //if endToken was used, the ev.token value would be null
+      if(now){return client.terminate()} //Connection Broken
       if(typeof n==="number"){ try{return close(...arguments)}catch{return true} }
       else{ try{return close(1000)}catch{return true} }
     }
     client.close=closeClient //every socket.close that I call leads to this
+    ping=setInterval(()=>{
+      if(new Date()-lastPing>7000){
+        alreadyClosed=true //the close event gets called after so I want to prevent 2 events for 1 disconnection
+        closeClient(null,true)
+      }
+    },1000)
+    client.send("PING") //starts the back and forth pinging between server and client
     client.on('message',(msg)=>{
-      if(clientMsgCount==0){ //first message is handshake
+      if(msg==="PING"){ //ping received(sending own ping)
+        setTimeout(()=>client.send("PING"),2500)
+        return lastPing=Number(new Date())
+      }
+      if(clientMsgCount===0){ //first message is handshake
         if(!authTokens[msg]){return client.close(1000)} //if you client doesn't have a valid token, they get closed
         if(authTokens[msg].locked){return client.close(1001)} //if authToken is locked, no more new connections
         token=authTokens[msg]
@@ -245,7 +258,7 @@ function serve(obj,server){ //serve an object(synchronous because this IS the se
       else{ //listen to client if authLevel > 1 AND serial difference
         let myAuthLevel=token.authLevel //authLevel 1 would be ignored(can only view)
         if(myAuthLevel>1&&token.string!=msg){try{
-          if(myAuthLevel==3){ //authLevel 3 unfiltered edits
+          if(myAuthLevel===3){ //authLevel 3 unfiltered edits
             stringToObj(msg,token.object); token.string=objToString(token.object); dispatchEdit(msg)
           }
           else if(compare(token.string,msg)){ //authLevel 2 can only add, therefore compare function
@@ -257,22 +270,24 @@ function serve(obj,server){ //serve an object(synchronous because this IS the se
     })
     //in any of the 3 below cases, it's time for this client to get closed
     client.on('disconnect',closeClient)
-    client.on('close',closeClient)
+    client.on('close',(n)=>{
+      if(!alreadyClosed){closeClient(n)}
+    })
     client.on('error',closeClient)
   })
   //websocket block end
   let toReturn={authTokens,addToken,endToken,lock,unlock,addListener,endListener}
   Object.keys(toReturn).forEach(key=>{
-    if(typeof toReturn[key]=="function"){toReturn[key]=toReturn[key].bind(toReturn)}
+    if(typeof toReturn[key]==="function"){toReturn[key]=toReturn[key].bind(toReturn)}
   })
   return toReturn //the function binding you would've seen is to maintain the functions' purpose(even after destructuring)
 }
 
 //connect to an object
-async function connect(location,authToken,onFail){ //receive an object(asynchronous to wait for connection with server)
-  if(typeof location!="string"||typeof authToken!="string"){throw new Error("BOTH location AND authToken MUST be STRINGS >:|")}
-  if(typeof onFail!="function"&&onFail){throw new Error("If you choose the optional parameter onFail, it must be a function >:|")}
-  let obj={}, toReturn=null, toReject=null, s=null
+async function connect(location,authToken,onFail,object){ //receive an object(asynchronous to wait for connection with server)
+  if(typeof location!="string"||typeof authToken!=="string"){throw new Error("BOTH location AND authToken MUST be STRINGS >:|")}
+  if(typeof onFail!=="function"&&onFail){throw new Error("If you choose the optional parameter onFail, it must be a function >:|")}
+  let obj=object||{}, toReturn=null, toReject=null, s=null, ping=null, alreadyClosed=false
   let server=await new webSocket(location)
   server.onerror=(err)=>{
     console.error("Attempting to connect to a websocket using the location parameter produced the following error :/\n~",err.message)
@@ -289,14 +304,21 @@ async function connect(location,authToken,onFail){ //receive an object(asynchron
     if(toReturn){toReject(errorMessage)}else{console.error(errorMessage)}
     /*if the promise is NOT fulfiled, reject.. else, warn*/
     clearInterval(s) //of course, cleaning out this interval
+    clearInterval(ping) //cleaning out this one too ;D
     if(onFail){onFail()} //onFail function can be used for repeating task until connection
   }
   server.on('open',()=>{
-    let serverMsgCount=0
     server.send(authToken)
+    let serverMsgCount=0, lastPing=Number(new Date())
+    ping=setInterval(()=>{
+      if(new Date()-lastPing>7000){
+        alreadyClosed=true //the close event gets called after so I want to prevent 2 events for 1 disconnection
+        disconnectHandle(1006,"Connection Broken")
+      }
+    },1000)
     function handleObj(){ //sends object data to server
       let currentString=objToString(obj)
-      if(currentString!=staticString){
+      if(currentString!==staticString){
         server.send( objToString(obj,staticString) )
       }
       staticString=currentString; currentString=null
@@ -305,6 +327,10 @@ async function connect(location,authToken,onFail){ //receive an object(asynchron
     }
     server.on('message',(msg)=>{
       if(typeof msg=="object"){msg=msg.data} //this solves browser issues
+      if(msg==="PING"){ //ping received(sending own ping)
+        setTimeout(()=>server.send("PING"),2500)
+        return lastPing=Number(new Date())
+      }
       if(serverMsgCount===0){toReturn(true);toReturn=null;s=setInterval(handleObj,0)}
       stringToObj(msg,obj);staticString=objToString(obj) //server object data is absolute
       /*Modifying this code properly would reject the server rules, to modify the object to your liking*/
@@ -313,7 +339,9 @@ async function connect(location,authToken,onFail){ //receive an object(asynchron
       serverMsgCount?0:serverMsgCount++ //I rather not count to infinity
     })
     server.on('disconnect',(ev)=>disconnectHandle(ev,'disconnect'))
-    server.on('close',(ev)=>disconnectHandle(ev,'close'))
+    server.on('close',(ev)=>{
+      if(!alreadyClosed){disconnectHandle(ev,'close')}
+    })
     server.on('error',(ev)=>disconnectHandle(ev,'error'))
   })
   await p; return obj
@@ -322,7 +350,7 @@ async function connect(location,authToken,onFail){ //receive an object(asynchron
 //sync object to filePath
 function sync(obj,filePath,spacing){
   //error block 1 begin
-  var errors=[]; let yesOrNo={true:"errors",false:"error"}
+  var errors=[], yesOrNo={true:"errors",false:"error"}
   if(typeof obj!="object"){errors.push("obj MUST be an OBJECT >:|")}
   if(typeof filePath!="string"){errors.push("filePath MUST be a STRING >:{")}
   if(spacing&&typeof spacing!="string"){errors.push("spacing (if used) MUST be a STRING >:[")}
@@ -340,7 +368,7 @@ function sync(obj,filePath,spacing){
   var staticString=string()
   const syncID=setInterval(()=>{
     let testString=string()
-    if(testString!=staticString){
+    if(testString!==staticString){
       staticString=testString
       try{fs.writeFileSync(filePath,staticString)}
       catch(err){throw new Error(`This is strange.. suddenly, writing to ${filePath} is causing an error :?\n~`,err)}
