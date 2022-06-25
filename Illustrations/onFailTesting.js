@@ -6,8 +6,8 @@ mainObj.m=mainObj //example object(it's cyclic too)
 let myWebject=serve(mainObj)
 myWebject.addToken(1,mainObj,'valid_authToken')
 myWebject.addListener('connect',ev=>{
-  console.log('connection made.. disconnecting...')
-  setTimeout(()=>ev.client.close(),10)
+  console.log('\nconnection made.. disconnecting...')
+  setTimeout(()=>ev.socket.close(),10)
 })
 setInterval(()=>mainObj.c[0]++,500) //edits to the object every 500ms
 
