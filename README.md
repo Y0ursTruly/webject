@@ -119,6 +119,6 @@ However, as for the `serve` function itself, it returns some *utility* tools for
 
 # Updates
 - **heartbeat/ping logic**: Basically, I had a repl server and sometimes I turned off my connection(from my pc) and the server still behaved as if the connection was live.. so I've implemented this logic
-- **new `object` parameter in `connect`**: I also added an `object` argument in the `connect` function which allows the user to connect to the remote object BUT with the user's object
+- **new `object` parameter in `connect`**: This allows the user to connect to the remote object BUT with the user's object
 
 <br>Well if you're all the way down here, my email is *[paulrytaylor@gmail.com](mailto:paulrytaylor@gmail.com)*
