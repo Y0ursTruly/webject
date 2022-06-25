@@ -1,7 +1,7 @@
 # webject
 Share Objects Online with the power of websockets. Keys, Values AND references. Webject is short for Web Object and it really is a system for sharing objects on the web. Someone can host an object, and make authTokens for others online to share this object
 <br>
-- **Please note**: All Versions BELOW `1.2.9` are now depreciated because *[serial.js](https://github.com/Y0ursTruly/webject/blob/main/serial.js)* has been updated but **please use `^1.3.0`** because the `1.2.9` does not work properly on browser
+- **Please note**: Please ensure that the same version of *webject* is used across the different points/ends of your application that use it
 # Installation
 Three ways
 - *[Download Github Package as ZIP](https://github.com/Y0ursTruly/webject/archive/refs/heads/main.zip)*
@@ -43,8 +43,10 @@ let myToken=myWebject.addToken(1,someDifferentObject) //leaving out second param
 let myToken=myWebject.addToken(1,null,"my_key")
 //null/no value/undefined would mean sharing the original object from the serve function and "my_key" would be the value returned IF that is a unique token
 ```
-- **connect**: This is an *asynchronous* function would take in two manditory arguments(*location* and *authToken*) and one optional argument(*onFail*). For the manditory ones, as you must know where the object is being served **AND** must have a valid *authToken* to access it.
-<br>For the optional argument, *onFail*, it must be a function and example usage can be seen in *[onFailTesting.js](https://github.com/Y0ursTruly/webject/edit/main/Illustrations/onFailTesting.js)*
+- **connect**: This is an *asynchronous* function would take in two manditory arguments(*location* and *authToken*) and two optional arguments(*onFail* and *object*). For the manditory ones, as you must know where the object is being served **AND** must have a valid *authToken* to access it.
+<br>For the first optional argument, *onFail*, it must be a function and it is called whenever the connection is closed/broken
+<br>For the second optional argument, *object*, it is the object that *you* want the remote object to be(usually the function returns a *new* object for you)
+<br>example usage of the optional arguments can be seen in *[onFailTesting.js](https://github.com/Y0ursTruly/webject/edit/main/Illustrations/onFailTesting.js)*
 <br>*eg*:
 ```js
 let mySharedObject=await connect('wss://example.com:8009',myGivenAuthToken)
@@ -116,8 +118,7 @@ However, as for the `serve` function itself, it returns some *utility* tools for
 <br>*eg*: `myWebject.removeListener("connect",myHandler)`
 
 # Updates
-- **optimisation of serial.js**: *[serial.js](https://github.com/Y0ursTruly/webject/blob/main/serial.js)* now uses a different(way shorter) `objToString` format.
-- **removed non-minimal option**: this was a legacy option ~~but nobody uses this yet anyway and the update of `serial.js` makes it incompatible with the lower versions so I'm just ripping off the bandage~~
-- **optimisation of webject.js**: A lot of the instances of [Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array) in *[webject.js](https://github.com/Y0ursTruly/webject/blob/main/webject.js)* have been changed to instances of [Map](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map)
+- **heartbeat/ping logic**: Basically, I had a repl server and sometimes I turned off my connection(from my pc) and the server still behaved as if the connection was live.. so I've implemented this logic
+- **new `object` parameter in `connect`**: I also added an `object` argument in the `connect` function which allows the user to connect to the remote object BUT with the user's object
 
 <br>Well if you're all the way down here, my email is *[paulrytaylor@gmail.com](mailto:paulrytaylor@gmail.com)*
