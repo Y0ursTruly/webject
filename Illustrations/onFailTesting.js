@@ -14,7 +14,7 @@ setInterval(()=>mainObj.c[0]++,500) //edits to the object every 500ms
 const mySharedObj={};
 async function loop(){
   await new Promise(r=>setTimeout(r,3000)) //so it doesn't try to re-connect as soon as the function gets recalled
-  await connect('ws://localhost:89','valid_authToken',loop,mySharedObj) //connection to remote object with mySharedObj
+  await connect('ws://localhost:8009','valid_authToken',loop,mySharedObj) //connection to remote object with mySharedObj
   console.log(mySharedObj) //to show you that it works >:D
   //remember that the default port it tries to put the websocket on is 8009 when you don't give it a server
 }
