@@ -5,7 +5,7 @@ mainObj.m=mainObj //example object(it's cyclic too)
 
 let myWebject=serve(mainObj)
 myWebject.addToken(1,mainObj,'valid_authToken')
-myWebject.on('connect',ev=>{
+myWebject.addListener('connect',ev=>{
   console.log('connection made.. disconnecting...')
   setTimeout(()=>ev.client.close(),10)
 })
