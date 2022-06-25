@@ -285,7 +285,7 @@ function serve(obj,server){ //serve an object(synchronous because this IS the se
 
 //connect to an object
 async function connect(location,authToken,onFail,object){ //receive an object(asynchronous to wait for connection with server)
-  if(typeof location!="string"||typeof authToken!=="string"){throw new Error("BOTH location AND authToken MUST be STRINGS >:|")}
+  if(typeof location!=="string"||typeof authToken!=="string"){throw new Error("BOTH location AND authToken MUST be STRINGS >:|")}
   if(typeof onFail!=="function"&&onFail){throw new Error("If you choose the optional parameter onFail, it must be a function >:|")}
   let obj=object||{}, toReturn=null, toReject=null, s=null, ping=null, alreadyClosed=false
   let server=await new webSocket(location)
@@ -326,7 +326,7 @@ async function connect(location,authToken,onFail,object){ //receive an object(as
       /*however there is no way for the client to know the authLevel of the authToken provided*/
     }
     server.on('message',(msg)=>{
-      if(typeof msg=="object"){msg=msg.data} //this solves browser issues
+      if(typeof msg==="object"){msg=msg.data} //this solves browser issues
       if(msg==="PING"){ //ping received(sending own ping)
         setTimeout(()=>server.send("PING"),2500)
         return lastPing=Number(new Date())
