@@ -10,11 +10,11 @@
 /*---*/
 /*
 //for including my script with your html page(the line below)
-<script src="https://cdn.jsdelivr.net/npm/webject@1.3.0/webject.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/webject@1.3.1/webject.js"></script>
 //for including my script through browser console pasting
 (()=>{
   let script=document.createElement('script')
-  script.src="https://cdn.jsdelivr.net/npm/webject@1.3.0/webject.js"
+  script.src="https://cdn.jsdelivr.net/npm/webject@1.3.1/webject.js"
   //when webject is ready, window would have the webject functions (stringToObj,objToString,connect)
   Object.defineProperty(window,'connect',{set:value=>{
     Object.defineProperty(window,'connect',{value})
@@ -392,7 +392,7 @@ try{ //for nodejs
 catch{ //for browser
   console.log("Part 1/2 loaded ^-^")
   let script=document.createElement('script')
-  script.src="https://cdn.jsdelivr.net/npm/webject@1.3.0/serial.js"
+  script.src="https://cdn.jsdelivr.net/npm/webject@1.3.1/serial.js"
   Object.defineProperty(window,'stringToObj',{set:value=>{
     Object.defineProperty(window,'stringToObj',{value})
     objToString=window.objToString
