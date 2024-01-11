@@ -1,7 +1,7 @@
 //fun fact: ev.token is null for any client that never got access to any kind of token
-setTimeout(()=>process.exit(0),2001)
+setTimeout(()=>process.exit(0),10001)
 let {serve,connect}=require('../webject.js')
-var mainObj={a:{a1:1,a2:{a3:0}},b:{b1:2},c:[3,4],undefined} //even undefined value gets shared >:D
+var mainObj={a:{a1:1,a2:{a3:0}},b:{b1:2},c:new Uint8Array([3,4]),undefined} //even undefined value gets shared >:D
 var mainObj2={n:1,i:true,o:false,p:true}
 mainObj.m=mainObj; //example object(it's cyclic too)
 
@@ -17,9 +17,14 @@ mainObj.m=mainObj; //example object(it's cyclic too)
   myWebject.addListener("connect",console.log) //this listener will not activate since default prevented
   
   //new edit event introduced in version 1.1.0
-  myWebject.addListener("edit",({token})=>{ if(token.object==mainObj){console.log("edit event activated\nmainObj.c[0] ===",mainObj.c[0],"\n")} })
+  myWebject.addListener("edit",({token})=>{
+    if(token.object===mainObj)
+      console.log("edit event activated on mainObj\n",{mainObj,sharedObj});
+    else if(token.object===mainObj2)
+      console.log("edit event activated on mainObj2\n",{mainObj2,sharedObj2});
+  })
   
-  setInterval(()=>{mainObj.c[0]++;mainObj2.n++},500) //slight edit to objects every 500 ms
+  setInterval(()=>{mainObj.c[0]++;mainObj2.n++},1500) //slight edit to objects every 1500 ms
   
   let viewKey=myWebject.addToken(1) //a new view only token(because authLevel is 1)
   

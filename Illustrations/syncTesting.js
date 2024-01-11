@@ -1,14 +1,17 @@
 let fs=require('fs')
-setTimeout(()=>process.exit(0),10001)
 let {serve,connect,sync,desync,objToString,stringToObj}=require('../webject.js')
-var mainObj={a:{a1:1,a2:{a3:0}},b:{b1:2},c:[3,4],undefined} //even undefined value gets shared >:D
+var mainObj={a:{a1:1,a2:{a3:0}},b:{b1:2},c:[2,3],undefined} //even undefined value gets shared >:D
 mainObj.m=mainObj //example object(it's cyclic too)
 let slash=process.platform=="win32"?"\\":"/"
 let filePath=__dirname+slash+"data.json"; //for syncing cyclic object to file
+setTimeout(()=>{
+  fs.unlinkSync(filePath)
+  process.exit(0)
+},10001)
 
-let ID=sync(mainObj,filePath,'    ') //sync attempts to save newest form of object to file location and returns the interval that it sets
+sync(filePath,mainObj) //sync attempts to save newest form of object to file location and returns the interval that it sets
 
-setInterval(()=>mainObj.c[0]++,1500) //mainObj would be slightly edited every 500ms
+setInterval(()=>mainObj.c[0]++,1500) //mainObj would be slightly edited every 1500ms
 
 let myWebject=serve(mainObj); //I would let it make it's own server since I don't have one to give it to
 /*if you do already have a server, you can just pass it in through the second argument*/
@@ -26,4 +29,7 @@ myWebject.addListener("edit",async()=>{
   console.log("When these values are not the same, it means desync worked >:D\n")
 })
 
-setTimeout(()=>desync(ID),6001)
+setTimeout(()=>{
+  console.log("Desyncing...")
+  desync(filePath,mainObj)
+},6001)

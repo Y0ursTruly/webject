@@ -5,403 +5,425 @@
 //authLevel 2: clients with this authToken level can only ADD new entries to the shared object
 //authLevel 3: clients with this authToken level can modify the object in basically any way(adding, removing, modifying)
 /*---*/
-//since you're reading here.. my email is paulrytaylor@gmail.com
-//do contact me if you have any questions >:D
-/*---*/
-/*
-//for including my script with your html page(the line below)
-<script src="https://cdn.jsdelivr.net/npm/webject@1.3.1/webject.js"></script>
-//for including my script through browser console pasting
-(()=>{
-  let script=document.createElement('script')
-  script.src="https://cdn.jsdelivr.net/npm/webject@1.3.1/webject.js"
-  //when webject is ready, window would have the webject functions (stringToObj,objToString,connect)
-  Object.defineProperty(window,'connect',{set:value=>{
-    Object.defineProperty(window,'connect',{value})
-    //over here, webject is ready for your browser tab, meaning that you can use webject functions
-    //for instance, you can replace this line calling a function that uses webject
-  },configurable:true})
-  document.head.appendChild(script)
-})()
-//for github, git clone https://github.com/Y0ursTruly/webject.git and require('path/to/webject.js')
-//for npm, npm install webject and require('webject')
-*/
 (()=>{
 
 
 
-try{ //for nodejs
-  var webSocket=require('ws'); var fs=require('fs')
-  var {objToString,stringToObj}=require(__dirname+'/serial.js')
-}
-catch{ //for browser
-  var webSocket=WebSocket
-  webSocket.prototype.on=webSocket.prototype.addEventListener
-}
 
-let syncList={} //sync list for records of syncing
-let randList={} //this block here is for recording random UNIQUE keys
-let map=new WeakMap() //the map is for only having 1 string AND interval per object
-var arr=["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t",
-"u","v","w","x","y","z",0,1,2,3,4,5,6,7,8,9,"!","@","$","&","*","(","-","_","=","+","[","]","~"]
-function randomChar(n){ //creates randomised tokens(that start with "webject_")
-  var m=Math.random, f=Math.floor, newChar="webject_" //all default authTokens begin with webject_
-  function notUnique(){
-    for(var i=0; i<f(m()*100+n); i++){ newChar+=arr[f(m()*arr.length)] }
-    return randList[newChar]
-  }
-  while(notUnique()){newChar="webject_"} //try UNTIL it's unique 
-  randList[newChar]=1 //so that this key won't repeat
-  return newChar
-}
-function dispatchEdit(myMap){
-  myMap.dispatchList.forEach((_,dispatch)=>{
-    dispatch.tokenList.forEach((_,token)=>dispatch("edit",token,null))
-  })
-}
-function addMapping(obj,token,dispatch){ //token is the authToken object
-  let myMap=map.get(obj)
-  if(!myMap){ //then set the mapping object
-    myMap={string:objToString(obj),tokenLists:{[token.authToken]:token},dispatchList:new Map([[dispatch,1]])}
-    myMap.interval=setInterval(()=>{
-      let deleted=Object.values(myMap.tokenLists).every(token=>token.deleted)
-      if(deleted){ clearInterval(myMap.interval);map.delete(obj);return myMap=null }
-      let currentString=objToString(obj)
-      if(currentString!==myMap.string){
-        let toSend=objToString(obj,myMap.string)
-        Object.values(myMap.tokenLists).forEach(token=>{
-          token.clients.forEach((_,client)=>client.send(toSend))
-        })
-        myMap.string=currentString; dispatchEdit(myMap)
-      }
-      currentString=null
-    },0)
-    myMap.sendEdit=(edit,sender)=>{
-      Object.values(myMap.tokenLists).forEach(token=>{
-        token.clients.forEach((_,client)=>{ if(client!==sender){client.send(edit)} })
-      })
-      dispatchEdit(myMap)
-    }
-    map.set(obj,myMap)
-  }
-  else{
-    myMap.tokenLists[token.authToken]=token
-    if(!myMap.dispatchList.get(dispatch)){myMap.dispatchList.set(dispatch,1)}
-  }
-}
-function createToken(authToken,authLevel,object,dispatch){ //creates the authToken object
-  const toReturn={authToken,authLevel,clients:new Map(),object,locked:false}
-  addMapping(object,toReturn,dispatch) //creates map of object(if not done already) then appends the clients array
-  let getString=()=>map.get(object).string
-  let setString=(str)=>map.get(object).string=str
-  Object.defineProperty(toReturn,"string",{get:getString,set:setString})
-  return toReturn //to return is the structure for each authToken object in authTokens
-}
-
-//this block here is for comparing 2 object strings(to see if level 2 authToken can apply their changes)
-function pathCompare(elem1,elem2){ //this tests if 2 elements have the same path
-  if(elem2[0][0]===0){throw new TypeError("authLevel 2 does not accept delete instructions")}
-  let path1=typeof elem1[0][0]==="number"?elem1[0].splice(1):elem1[0]
-  let path2=typeof elem2[0][0]==="number"?elem2[0].splice(1):elem2[0]
-  if(path1.length!==path2.length){return false}
-  for(let i=0;i<elem1[0].length;i++){
-    if(elem1[0][i]!==elem2[0][i]){return false}
-  }
-  return true
-}
-function findMatch(elem,obj2){ //this tests if elem with same path exists in client desired obj
-  let location=null
-  obj2.forEach(a=>{
-    if(pathCompare(elem,a)){location=a}
-  })
-  if(!location){return location} //null
-  if(typeof location[0][0]!=="number"){return location} //direct value
-  return obj2[location.reference] //because sometimes a path can be a reference
-}
-let cmp=(found,a)=>JSON.stringify(found[1])!==JSON.stringify(a[1])
-function compare(str1,str2){ //str1 is the home obj, str2 is the client desired obj
-  var toReturn=true, obj1=JSON.parse(str1), obj2=JSON.parse(str2)
-  obj1.forEach(a=>{
-    try{var found=findMatch(a,obj2)}catch{toReturn=false}
-    if(found?cmp(found,a):false){toReturn=false}
-  })
-  obj1=null; obj2=null; return toReturn
-}
-
-//serve an object
-function serve(obj,server){ //serve an object(synchronous because this IS the server clients wait to connect to)
-  if(typeof obj!=="object"||obj===null){throw new Error("Parameter 'obj' MUST be an OBJECT >:|")}
-  try{var ws=new webSocket.Server({server})}
-  catch{
-    try{var ws=new webSocket.Server({port:8009})}
-    catch{throw new Error("UNABLE TO SERVE >:{")}
-  }
-  var authTokens={}, levels={1:1,2:1,3:1}
-  //utility functions begin
-  function addToken(authLevel,object,specificToken){ //authToken adder
-    if(typeof object!=="object"||object===null){object=obj} //can share one object per authToken
-    if(!levels[authLevel]){
-      throw new Error("INVALID AUTH LEVEL\nAuthorisation levels are 1, 2 and 3 :/")
-    }
-    if(typeof specificToken!=="string" && specificToken){
-      throw new Error("If specificToken parameter is used, it MUST be a string ;-;")
-    }
-    if(authTokens[specificToken]||randList[specificToken]){
-      throw new Error("If specificToken parameter is used, it MUST be a UNIQUE token ;-;")
-    }
-    if(typeof specificToken==="string"){var authToken=specificToken} //specificToken chosen as authToken
-    else{var authToken=randomChar(15)} //random token generation(by default)
-    
-    authTokens[authToken]=createToken(authToken,authLevel,object,dispatch)
-    dispatch.tokenList.set(authTokens[authToken],1)
-    return authToken
-  }
-  function endToken(authToken){ //authToken remover
-    try{
-      authTokens[authToken].deleted=true
-      authTokens[authToken].clients.forEach((_,a)=>a.close(1000))
-      dispatch.tokenList.delete(authTokens[authToken])
-      return delete(authTokens[authToken])
-    }
-    catch{throw new Error("INVALID TOKEN(as in it doesn't exist) :/")}
-  }
-  function lock(authToken){
-    if(authToken){
-      try{authTokens[authToken].locked=true}
-      catch{throw new Error("PLEASE give a VALID authToken(given token doesn't exist) 0_0")}
-    }
-    else{
-      try{this.token.locked=true}
-      catch{throw new Error("PLEASE give an authToken which is of type STRING 0_0")}
-    }
-    return true //action was successful
-  }
-  function unlock(authToken){
-    if(authToken){
-      try{authTokens[authToken].locked=false}
-      catch{throw new Error("PLEASE give a VALID authToken(given token doesn't exist) 0_0")}
-    }
-    else{
-      try{
-        if(this.token==null){return false} //action unsuccessful because token is null(due to failed authentication or token ended)
-        this.token.locked=false
-      }
-      catch{throw new Error("PLEASE give an authToken which is of type STRING 0_0")}
-    }
-    return true //action was successful
-  }
-  //utility functions end
-  //event stuff begin
-  var events={connect:[],disconnect:[],edit:[]} //more events will come in time
-  function dispatch(type,token,socket){
-    var defaultPrevented=false
-    let preventDefault=()=>defaultPrevented=true
-    var customEvent={token,socket,type,lock,unlock,preventDefault}
-    customEvent.lock=lock.bind(customEvent); customEvent.unlock=unlock.bind(customEvent)
-    let warn="an added listener produced the following error :/\n~"
-    events[type].forEach(a=>{
-      if(!defaultPrevented){
-        try{a(customEvent)} catch(err){console.warn(warn,err)}
-      }
-    })
-  }
-  dispatch.tokenList=new Map() //for the mapping system, it is recorded, the tokens in dispatch "view"
-  function addListener(event,yourReaction){
-    if(typeof event!=="string"||typeof yourReaction!=="function"){
-      throw new Error("The event parameter MUST be a STRING\nAND the yourReaction parameter MUST be a FUNCTION >:|")
-    }
-    if(!events[event]){throw new Error("That event DOES NOT EXIST :|")}
-    events[event].push(yourReaction)
-  }
-  function endListener(event,yourReaction){
-    if(typeof event!=="string"||typeof yourReaction!=="function"){
-      throw new Error("The event parameter MUST be a STRING\nAND the yourReaction parameter MUST be a FUNCTION >:|")
-    }
-    if(!events[event]){throw new Error("That event DOES NOT EXIST :|")}
-    let indexOfReaction=events[event].indexOf(yourReaction)
-    if(indexOfReaction!=-1){events[event].splice(indexOfReaction,1)}
-  }
-  //event stuff end
-  //websocket block begin
-  ws.on('connection',(client)=>{
-    let close=client.close.bind(client), ping=null, lastPing=Number(new Date()), alreadyClosed=false
-    let clientMsgCount=0, token=null, dispatchEdit=(msg)=>map.get(token.object).sendEdit(msg,client)
-    function closeClient(n,now){ //to ensure socket cleanup
-      clearInterval(ping) //clearing this interval
-      token?token.clients.delete(client):0
-      dispatch("disconnect",token,client) //if endToken was used, the ev.token value would be null
-      if(now){return client.terminate()} //Connection Broken
-      if(typeof n==="number"){ try{return close(...arguments)}catch{return true} }
-      else{ try{return close(1000)}catch{return true} }
-    }
-    client.close=closeClient //every socket.close that I call leads to this
-    ping=setInterval(()=>{
-      if(new Date()-lastPing>7000){
-        alreadyClosed=true //the close event gets called after so I want to prevent 2 events for 1 disconnection
-        closeClient(null,true)
-      }
-    },1000)
-    client.send("PING") //starts the back and forth pinging between server and client
-    client.on('message',(msg)=>{
-      if(msg==="PING"){ //ping received(sending own ping)
-        setTimeout(()=>client.send("PING"),2500)
-        return lastPing=Number(new Date())
-      }
-      if(clientMsgCount===0){ //first message is handshake
-        if(!authTokens[msg]){return client.close(1000)} //if you client doesn't have a valid token, they get closed
-        if(authTokens[msg].locked){return client.close(1001)} //if authToken is locked, no more new connections
-        token=authTokens[msg]
-        client.send(token.string)
-        token.clients.set(client,1)
-        dispatch("connect",token,client)
-      }
-      else{ //listen to client if authLevel > 1 AND serial difference
-        let myAuthLevel=token.authLevel //authLevel 1 would be ignored(can only view)
-        if(myAuthLevel>1&&token.string!=msg){try{
-          if(myAuthLevel===3){ //authLevel 3 unfiltered edits
-            stringToObj(msg,token.object); token.string=objToString(token.object); dispatchEdit(msg)
-          }
-          else if(compare(token.string,msg)){ //authLevel 2 can only add, therefore compare function
-            stringToObj(msg,token.object); token.string=objToString(token.object); dispatchEdit(msg)
-          }
-        }catch(err){console.log(err)/*purposeful or not, unwanted data can be sent and read with error*/}}
-      }
-      clientMsgCount?0:clientMsgCount++ //I rather not count to infinity
-    })
-    //in any of the 3 below cases, it's time for this client to get closed
-    client.on('disconnect',closeClient)
-    client.on('close',(n)=>{
-      if(!alreadyClosed){closeClient(n)}
-    })
-    client.on('error',closeClient)
-  })
-  //websocket block end
-  let toReturn={authTokens,addToken,endToken,lock,unlock,addListener,endListener}
-  Object.keys(toReturn).forEach(key=>{
-    if(typeof toReturn[key]==="function"){toReturn[key]=toReturn[key].bind(toReturn)}
-  })
-  return toReturn //the function binding you would've seen is to maintain the functions' purpose(even after destructuring)
-}
-
-//connect to an object
-async function connect(location,authToken,onFail,object){ //receive an object(asynchronous to wait for connection with server)
-  if(typeof location!=="string"||typeof authToken!=="string"){throw new Error("BOTH location AND authToken MUST be STRINGS >:|")}
-  if(typeof onFail!=="function"&&onFail){throw new Error("If you choose the optional parameter onFail, it must be a function >:|")}
-  let obj=object||{}, toReturn=null, toReject=null, s=null, ping=null, alreadyClosed=false
-  let server=await new webSocket(location)
-  server.onerror=(err)=>{
-    console.error("Attempting to connect to a websocket using the location parameter produced the following error :/\n~",err.message)
-    if(onFail){onFail()} //if connecting fails, function is called(if given)
-  }
-  let p=new Promise((r,j)=>{toReturn=r; toReject=j}), staticString=""
-  function disconnectHandle(event,name){
-    let code=event, disconnectReason=null
-    if(isNaN(code)){code=event.code}
-    if(code==1006){disconnectReason="closed ABNORMALLY: either you or the server just LOST connection :|"}
-    else if(code==1001){disconnectReason="authToken LOCKED: this is a correct key, but it takes no new connections 0_0"}
-    else{disconnectReason="closed PURPOSEFULLY: check your location and token parameters, OR you got BOOTED :/"}
-    let errorMessage=`connection with server is OVER due to event: ${name}\n${disconnectReason}`
-    if(toReturn){toReject(errorMessage)}else{console.error(errorMessage)}
-    /*if the promise is NOT fulfiled, reject.. else, warn*/
-    clearInterval(s) //of course, cleaning out this interval
-    clearInterval(ping) //cleaning out this one too ;D
-    if(onFail){onFail()} //onFail function can be used for repeating task until connection
-  }
-  server.on('open',()=>{
-    server.send(authToken)
-    let serverMsgCount=0, lastPing=Number(new Date())
-    ping=setInterval(()=>{
-      if(new Date()-lastPing>7000){
-        alreadyClosed=true //the close event gets called after so I want to prevent 2 events for 1 disconnection
-        disconnectHandle(1006,"Connection Broken")
-      }
-    },1000)
-    function handleObj(){ //sends object data to server
-      let currentString=objToString(obj)
-      if(currentString!==staticString){
-        server.send( objToString(obj,staticString) )
-      }
-      staticString=currentString; currentString=null
-      //override only works if authToken's authLevel is 3
-      /*however there is no way for the client to know the authLevel of the authToken provided*/
-    }
-    server.on('message',(msg)=>{
-      if(typeof msg==="object"){msg=msg.data} //this solves browser issues
-      if(msg==="PING"){ //ping received(sending own ping)
-        setTimeout(()=>server.send("PING"),2500)
-        return lastPing=Number(new Date())
-      }
-      if(serverMsgCount===0){toReturn(true);toReturn=null;s=setInterval(handleObj,0)}
-      stringToObj(msg,obj);staticString=objToString(obj) //server object data is absolute
-      /*Modifying this code properly would reject the server rules, to modify the object to your liking*/
-      /*BUT the only object you can meddle with would be the one on YOUR device(it's like if you disconnected)*/
-      /*In addition to that, you wouldn't even be sharing the object, since rejecting the server is as good as leaving the socket*/
-      serverMsgCount?0:serverMsgCount++ //I rather not count to infinity
-    })
-    server.on('disconnect',(ev)=>disconnectHandle(ev,'disconnect'))
-    server.on('close',(ev)=>{
-      if(!alreadyClosed){disconnectHandle(ev,'close')}
-    })
-    server.on('error',(ev)=>disconnectHandle(ev,'error'))
-  })
-  await p; return obj
-}
-
-//sync object to filePath
-function sync(obj,filePath,spacing){
-  //error block 1 begin
-  var errors=[], yesOrNo={true:"errors",false:"error"}
-  if(typeof obj!="object"){errors.push("obj MUST be an OBJECT >:|")}
-  if(typeof filePath!="string"){errors.push("filePath MUST be a STRING >:{")}
-  if(spacing&&typeof spacing!="string"){errors.push("spacing (if used) MUST be a STRING >:[")}
-  if(errors.length){throw new Error(`A total of ${errors.length} ${yesOrNo[errors.length]} generated ;-;\n${errors.join("\n")}`)}
-  //error block 1 end
-  //error block 2 begin
-  try{fs.writeFileSync(filePath,fs.readFileSync(filePath))}
-  catch{
-    try{fs.writeFileSync(filePath,objToString(obj,null,spacing))}
-    catch(err){throw new Error("Using this filePath caused an error ;-;\n~",err)}
-  }
-  //error block 2 end
+  const webSocket=require('ws'), fs=require('node:fs'), path=require('node:path')
+  const {objToString,stringToObj,objValueFrom}=require(path.join(__dirname,'serial.js'))
+  const crypto=require('node:crypto'), cmpStr=objToString({})
   
-  var string=()=>objToString(obj,null,spacing)
-  var staticString=string()
-  const syncID=setInterval(()=>{
-    let testString=string()
-    if(testString!==staticString){
-      staticString=testString
-      try{fs.writeFileSync(filePath,staticString)}
-      catch(err){throw new Error(`This is strange.. suddenly, writing to ${filePath} is causing an error :?\n~`,err)}
-    }
-  },0)
-  syncList[syncID]=true; return syncID
-}
-
-//desyc object from filePath
-function desync(syncID){
-  if(!syncList[syncID]){throw new Error("INVALID syncID *-*")}
-  delete(syncList[syncID]); clearInterval(syncID)
-}
-
-try{ //for nodejs
-  if(!global.webject){
-    global.webject={serve, connect, sync, desync, objToString, stringToObj}
+  let randList={__proto__:null} //this block here is for recording random UNIQUE keys
+  let map=new WeakMap() //the map is for only having 1 string AND interval per object
+  let random =_=> (crypto.webcrypto||crypto).getRandomValues(new Uint32Array(1))[0];
+  let range =(max,min)=> (random()%(max-min))+min; //numeric range
+  var arr='abcdefgjiklmnopqrstuvwxyz-_0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ :;.,\\/"\'?!(){}[]@<>=+*#$&`|~^%'.split('')
+  
+  function randomChar(n,defaultChar){
+    if(typeof defaultChar!=="string") defaultChar="webject_"; //all default authTokens begin with webject_
+    do{
+      var str="", length=range(2*n,n)
+      for(let i=0;i<length;i++) str+=arr[range(arr.length-1,0)];
+      str=defaultChar+str;
+    }while(randList[str]);
+    randList[str]=1; //so that this key won't repeat
+    return str;
   }
-  module.exports=global.webject
-}
-catch{ //for browser
-  console.log("Part 1/2 loaded ^-^")
-  let script=document.createElement('script')
-  script.src="https://cdn.jsdelivr.net/npm/webject@1.3.1/serial.js"
-  Object.defineProperty(window,'stringToObj',{set:value=>{
-    Object.defineProperty(window,'stringToObj',{value})
-    objToString=window.objToString
-    stringToObj=window.stringToObj
-    window.connect=connect
-  },configurable:true})
-  document.head.appendChild(script)
-}
-
-
-
-})()
+  function dispatchEdit(myMap,sender=null){
+    myMap.dispatchList.forEach((_,dispatch)=>{
+      dispatch.tokenList.forEach((_,token)=>dispatch("edit",token,sender))
+    })
+  }
+  function addMapping(obj,token,dispatch){ //token is the authToken object
+    let myMap=map.get(obj)
+    if(!myMap){ //then set the mapping object
+      objToString(obj,true)
+      myMap={tokenLists:{[token.authToken]:token},dispatchList:new Map([[dispatch,1]])}
+      myMap.interval=setInterval(()=>{
+        let deleted=Object.values(myMap.tokenLists).every(token=>{
+          if(token.deleted) delete myMap.tokenLists[token.authToken];
+          return token.deleted;
+        })
+        if(deleted){
+          clearInterval(myMap.interval)
+          map.delete(obj)
+          return myMap=null
+        }
+        let toSend=objToString(obj)
+        if(toSend!==cmpStr){ //if there are edits
+          Object.values(myMap.tokenLists).forEach(async(token)=>{
+            let msg=token.encoder?(await token.encoder(toSend)):toSend;
+            token.clients.forEach((_,client)=>client.send(msg))
+          })
+          dispatchEdit(myMap)
+        }
+      },20)
+      myMap.sendEdit=(toSend,sender)=>{
+        Object.values(myMap.tokenLists).forEach(async(token)=>{
+          let msg=token.encoder?(await token.encoder(toSend)):toSend;
+          token.clients.forEach((_,client)=>{
+            if(client!==sender) client.send(msg);
+          })
+        })
+        dispatchEdit(myMap,sender)
+      }
+      map.set(obj,myMap)
+    }
+    else{
+      myMap.tokenLists[token.authToken]=token
+      if(!myMap.dispatchList.get(dispatch)) myMap.dispatchList.set(dispatch,1);
+    }
+  }
+  function createToken(authToken,filter,object,dispatch,coding){ //creates the authToken object
+    let toReturn={authToken,filter,clients:new Map(),object,locked:false}
+    if(coding){
+      toReturn={...toReturn, encoder:coding.encoder, decoder:coding.decoder}
+    }
+    addMapping(object,toReturn,dispatch) //creates map of object(if not done already) then appends the clients array
+    
+    return toReturn //to return is the structure for each authToken object in authTokens
+  }
+  
+  
+  
+  //serve an object
+  function serve(obj,server){ //serve an object(synchronous because this IS the server clients wait to connect to)
+    if(typeof obj!=="object"||obj===null){throw new Error("Parameter 'obj' MUST be an OBJECT >:|")}
+    try{var ws=new webSocket.Server({server})}
+    catch{
+      try{var ws=new webSocket.Server({port:8009})}
+      catch{throw new Error("UNABLE TO SERVE >:{")}
+    }
+    var authTokens={__proto__:null}, levels={1:1,2:1,3:1,__proto__:null}, encodingStorage={__proto__:null}
+    
+    /*------------utility functions begin------------*/
+    function addToken(filter,object,specificToken,coding){ //authToken adder
+      if(typeof object!=="object"||object===null){object=obj} //can share one object per authToken
+      if(!levels[filter]&&typeof filter!=="function")
+        throw new RangeError("INVALID FILTER\nFilter MUST be either 1, 2, 3 OR a function :/");
+      if(specificToken){
+        if(typeof specificToken!=="string")
+          throw new TypeError("If specificToken parameter is used, it MUST be a string ;-;");
+        if(specificToken.length<8)
+          throw new RangeError("The specificToken MUST be AT LEAST 8 characters long");
+      }
+      if(authTokens[specificToken]||randList[specificToken])
+        throw new TypeError("If specificToken parameter is used, it MUST be a UNIQUE token ;-;");
+      if(coding  &&  (typeof coding==="object"?typeof coding.encoder!=="function"||typeof coding.decoder!=="function":false)){
+        throw new TypeError("If coding parameter is used, it MUST be an object with both 'encoder' and 'decoder' functions")
+      }
+      if(typeof specificToken==="string"){var authToken=specificToken} //specificToken chosen as authToken
+      else{var authToken=randomChar(8)} //random token generation(by default)
+      randList[authToken] ||= 1;
+      
+      authTokens[authToken]=createToken(authToken,filter,object,dispatch,coding) //authLevel
+      dispatch.tokenList.set(authTokens[authToken],1)
+      return authToken
+    }
+    function endToken(authToken){ //authToken remover
+      if(typeof authToken!=="string")
+        throw new TypeError("The authToken MUST be a string ;-;");
+      if(authToken.length<8)
+        throw new RangeError("The authToken MUST be AT LEAST 8 characters long");
+      try{
+        authTokens[authToken].deleted=true
+        authTokens[authToken].clients.forEach((_,a)=>a.close(1000))
+        dispatch.tokenList.delete(authTokens[authToken])
+        delete randList[authToken]
+        return delete authTokens[authToken]
+      }
+      catch{throw new Error("INVALID TOKEN(as in it doesn't exist) :/")}
+    }
+    function lock(authToken){
+      if(authToken){
+        try{authTokens[authToken].locked=true}
+        catch{throw new Error("PLEASE give a VALID authToken(given token doesn't exist) 0_0")}
+      }
+      else{
+        try{this.token.locked=true}
+        catch{throw new Error("PLEASE give an authToken which is of type STRING 0_0")}
+      }
+      return true //action was successful
+    }
+    function unlock(authToken){
+      if(authToken){
+        try{authTokens[authToken].locked=false}
+        catch{throw new Error("PLEASE give a VALID authToken(given token doesn't exist) 0_0")}
+      }
+      else{
+        try{
+          if(this.token==null){return false} //action unsuccessful because token is null(due to failed authentication or token ended)
+          this.token.locked=false
+        }
+        catch{throw new Error("PLEASE give an authToken which is of type STRING 0_0")}
+      }
+      return true //action was successful
+    }
+    /*------------utility functions end------------*/
+    
+    /*------------event stuff begin------------*/
+    var events={connect:[],disconnect:[],edit:[]} //more events will come in time
+    function dispatch(type,token,socket){
+      var defaultPrevented=false
+      let preventDefault=()=>defaultPrevented=true
+      var customEvent={token,socket,type,lock,unlock,preventDefault}
+      customEvent.lock=lock.bind(customEvent)
+      customEvent.unlock=unlock.bind(customEvent)
+      let warn="an added listener produced the following error :/\n~"
+      events[type].forEach(a=>{
+        if(!defaultPrevented){
+          try{a(customEvent)} catch(err){console.warn(warn,err)}
+        }
+      })
+    }
+    dispatch.tokenList=new Map() //for the mapping system, it is recorded, the tokens in dispatch "view"
+    function addListener(event,yourReaction){
+      if(typeof event!=="string"||typeof yourReaction!=="function"){
+        throw new Error("The event parameter MUST be a STRING\nAND the yourReaction parameter MUST be a FUNCTION >:|")
+      }
+      if(!events[event]){throw new Error("That event DOES NOT EXIST :|")}
+      events[event].push(yourReaction)
+    }
+    function endListener(event,yourReaction){
+      if(typeof event!=="string"||typeof yourReaction!=="function"){
+        throw new Error("The event parameter MUST be a STRING\nAND the yourReaction parameter MUST be a FUNCTION >:|")
+      }
+      if(!events[event]){throw new Error("That event DOES NOT EXIST :|")}
+      let indexOfReaction=events[event].indexOf(yourReaction)
+      if(indexOfReaction!=-1){events[event].splice(indexOfReaction,1)}
+    }
+    /*------------event stuff end------------*/
+    
+    /*------------websocket block begin------------*/
+    ws.on('connection',(client)=>{
+      let close=client.close.bind(client), ping=null, lastPing=Number(new Date()), alreadyClosed=false
+      let clientMsgCount=0, token=null, dispatchClientEdit=(msg)=>map.get(token.object).sendEdit(msg,client)
+      
+      function closeClient(n,now){ //to ensure socket cleanup
+        if(alreadyClosed){return null} //don't repeat close if already closed
+        alreadyClosed=true
+        clearInterval(ping) //clearing this interval
+        if(token) token.clients.delete(client);
+        dispatch("disconnect",token,client) //if endToken was used, the ev.token value would be null
+        if(now){return client.terminate()} //Connection Broken
+        if(typeof n==="number"){
+          try{return close(...arguments)}catch{return true}
+        }
+        else{ try{return close(1000)}catch{return true} }
+      }
+      client.close=closeClient //every socket.close that I call leads to this
+      let afk=setTimeout(()=>{  closeClient(null,true)  },2000)
+      
+      client.on('message',async(msg)=>{
+        //heartbeat handling start
+        if(msg==="PING"&&clientMsgCount===1){
+          //ping received with a socket that has SUCCESSFULLY CONNECTED
+          //now I am sending own ping
+          if(new Date()-lastPing<2500) return client.close(1000); //why are you pinging early? spammer?
+          client.send("PING");
+          return lastPing=Number(new Date())
+        }
+        //heartbeat handling end
+        
+        //client handshake start
+        if(clientMsgCount===0){ //first message is handshake
+          clearTimeout(afk) //first message means it is not inactive
+          ping=setInterval(()=>{
+            if(new Date()-lastPing>4000)  closeClient(null,true);
+          },1000)
+          let encodingHandled=false
+          try{msg=JSON.parse(msg)}
+          catch{return client.close(1000)}
+          if(typeof msg==="object"){ //handle for if it has encoding
+            try{var {decoder}=authTokens[msg[0]], parsed=JSON.parse(await decoder(msg[1]))}
+            catch{return client.close(1002)}
+            
+            if(Date.now()-parsed[1]>1e3) return client.close(1002); //old encoding authentication
+            if(parsed[0].length>64 || parsed[0].length<32) return client.close(1002);
+            
+            let key=msg[0]+parsed.join('')
+            if(encodingStorage[key]) return client.close(1002); //reused authentication
+            encodingStorage[key]=true
+            setTimeout(_=>delete encodingStorage[key],1e3)
+            encodingHandled=true
+            msg=msg[0]
+          }
+          else if(!authTokens[msg])  return client.close(1000); //if you client doesn't have a valid token, they get closed
+          
+          if(authTokens[msg].decoder && !encodingHandled)  return client.closed(1002); //this token uses encoding and it wasn't handled
+          if(authTokens[msg].locked)  return client.close(1001); //if authToken is locked, no more new connections
+          client.send("PING") //starts the back and forth pinging between server and client
+          token=authTokens[msg]
+          
+          if(!token.encoder) client.send(objToString(token.object,true));
+          else client.send( await token.encoder(objToString(token.object,true)) );
+          token.clients.set(client,1)
+          dispatch("connect",token,client)
+        }
+        //client handshake end
+        
+        //object update handling start
+        else{ //listen to client if authLevel > 1 AND serial difference
+          try{
+            if(token.decoder) msg=await token.decoder(msg);
+            stringToObj(msg,token.object,token.filter); //token.filter is authLevel
+            dispatchClientEdit(msg);
+          }
+          catch(err){  console.log(err)  }
+          //purposeful or not, unwanted data can be sent and read with error
+        }
+        //object update handling end
+        
+        clientMsgCount?0:clientMsgCount++ //I rather not count to infinity
+      })
+      //in any of the 3 below cases, it's time for this client to get closed
+      client.on('disconnect',closeClient)
+      client.on('close',(n)=>{
+        if(!alreadyClosed) closeClient(n);
+      })
+      client.on('error',closeClient)
+    })
+    /*------------websocket block end------------*/
+    
+    let toReturn={authTokens,addToken,endToken,lock,unlock,addListener,endListener}
+    Object.keys(toReturn).forEach(key=>{
+      if(typeof toReturn[key]==="function"){toReturn[key]=toReturn[key].bind(toReturn)}
+    })
+    return toReturn //the function binding you would've seen is to maintain the functions' purpose(even after destructuring)
+  }
+  
+  //connect to an object
+  async function connect(location,authToken,onFail,obj,coding){ //receive an object(asynchronous to wait for connection with server)
+    if(typeof location!=="string"||typeof authToken!=="string")
+      throw new Error("BOTH location AND authToken MUST be STRINGS >:|");
+    if(typeof onFail!=="function"&&onFail)
+      throw new Error("If you choose the optional parameter onFail, it must be a function >:|");
+    if(coding&&typeof coding==="object"?typeof coding.encoder!=="function"||typeof coding.decoder!=="function":false){
+      throw new TypeError("If coding parameter is used, it MUST be an object with both 'encoder' and 'decoder' functions");
+    }
+    let toReturn=null, toReject=null, s=null, ping=null, alreadyClosed=false
+    let server=await new webSocket(location)
+    server.onerror=(err)=>{
+      console.error("Attempting to connect to a websocket using the location parameter produced the following error :/\n~",err.message)
+      if(onFail){onFail()} //if connecting fails, function is called(if given)
+    }
+    let p=new Promise((r,j)=> (toReturn=r, toReject=j) )
+    function disconnectHandle(event,name){
+      let code=event, disconnectReason=null
+      if(isNaN(code))  code=event.code;
+      if(code==1006)
+        disconnectReason="closed ABNORMALLY: either you or the server just LOST connection :|";
+      else if(code==1002)
+        disconnectReason="authToken ENCODING FAULT: incorrect encoding/faulty protocol used, according to the server";
+      else if(code==1001)
+        disconnectReason="authToken LOCKED: this is a correct key, but it takes no new connections 0_0";
+      else
+        disconnectReason="closed PURPOSEFULLY: check your location and token parameters, OR you got BOOTED :/";
+      
+      let errorMessage=`connection with server is OVER due to event: ${name}\n${disconnectReason}`
+      if(toReturn)  toReject(errorMessage);
+      else  console.error(errorMessage);
+      /*if the promise is NOT fulfiled, reject.. else, warn*/
+      
+      (clearInterval(s), clearInterval(ping));
+      if(onFail)  onFail();
+    }
+    server.on('open',async()=>{
+      server.send(JSON.stringify(!coding?authToken:[
+        authToken,
+        await coding.encoder( JSON.stringify([randomChar(32,""),Date.now()]) )
+      ]))
+      let firstMsg=false, lastPing=Number(new Date())
+      ping=setInterval(()=>{
+        if(new Date()-lastPing>4000){
+          alreadyClosed=true //the close event gets called after so I want to prevent 2 events for 1 disconnection
+          disconnectHandle(1006,"Connection Broken")
+        }
+      },1000)
+      async function handleObj(){ //sends object data to server
+        let toSend=objToString(obj);
+        if(toSend!==cmpStr) //if there are edits
+          server.send(coding?(await (coding.encoder(toSend))):toSend);
+      }
+      server.on('message',async(msg)=>{
+        if(typeof msg==="object")  msg=msg.data; //this solves browser issues
+        if(msg==="PING"){ //ping received(sending own ping)
+          setTimeout(()=>server.send("PING"),2500)
+          return lastPing=Number(new Date())
+        }
+        obj=stringToObj(coding?(await (coding.decoder(msg))):msg,obj);
+        if(!firstMsg){
+          objToString(obj)
+          s=setInterval(handleObj,20)
+          firstMsg=true
+          toReturn(obj)
+        }
+      })
+      server.on('disconnect',(ev)=>disconnectHandle(ev,'disconnect'))
+      server.on('close',(ev)=>{
+        if(!alreadyClosed)  disconnectHandle(ev,'close');
+      })
+      server.on('error',(ev)=>disconnectHandle(ev,'error'))
+    })
+    return await p
+  }
+  
+  const syncList={__proto__:null} //sync list for records of syncing
+  //sync object to filePath
+  async function sync(filePath,obj,coding){
+    var errors=[], yesOrNo={true:"errors",false:"error"}
+    if(typeof filePath!=="string")
+      errors.push("filePath MUST be a STRING >:{");
+    if(obj&&typeof obj!=="object")
+      errors.push("obj (if used) MUST be an OBJECT >:|");
+    if(coding&&typeof coding==="object"?typeof coding.encoder!=="function"||typeof coding.decoder!=="function":false)
+      errors.push("If coding parameter is used, it MUST be an object with both 'encoder' and 'decoder' functions");
+    if(errors.length){
+      throw new Error(`A total of ${errors.length} ${yesOrNo[errors.length>1]} generated ;-;\n${errors.join("\n")}`);
+    }
+    
+    if(syncList[filePath]){
+      syncList[filePath].count++;
+      return syncList[filePath].object;
+    }
+    let encode=data=>coding?coding.encoder(data):data, decode=data=>coding?coding.decoder(data):data;
+    
+    try{  var object=stringToObj(await decode(fs.readFileSync(filePath)),obj)  }
+    catch{  var object=obj&&typeof obj==="object"?obj:{}  }
+    
+    try{  fs.writeFileSync(filePath,await encode(objToString(object,true)))  }
+    catch(err){  throw new Error("Using this filePath caused an error ;-;\n~",err)  }
+    
+    
+    async function dispatch(){
+      fs.writeFileSync(filePath,await encode(objToString(object,true)));
+    }
+    const token={authToken:"sync",clients:new Map(),count:1,dispatch,object}
+    dispatch.tokenList=new Map([[token,1]])
+    addMapping(object,token,dispatch)
+    
+    syncList[filePath] ||= token;
+    return object
+  }
+  
+  //desyc object from filePath
+  function desync(filePath){
+    if(typeof filePath!=="string")
+      throw new TypeError("filePath MUST be a STRING");
+    let token=syncList[filePath];
+    if(!token) throw new Error("NON-EXISTING filePath *-*");
+    if(--token.count<1){
+      token.dispatch.tokenList.delete(token);
+      delete syncList[filePath];
+      token.deleted=true;
+    }
+  }
+  
+  
+  global.webject||={serve, connect, sync, desync, objToString, stringToObj, objValueFrom};
+  module.exports=global.webject;
+  
+  
+  })()
+  
