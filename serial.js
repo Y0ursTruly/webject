@@ -45,7 +45,7 @@
   }
   const nonjson={
     __proto__:null,
-    undefined: function(data){return undefined},
+    undefined: function(){return undefined},
     Uint8Array: function(data){return new Uint8Array(data)},
     Uint8ClampedArray: function(data){return new Uint8ClampedArray(data)},
     Uint16Array: function(data){return new Uint16Array(data)},
@@ -56,6 +56,8 @@
     Int32Array: function(data){return new Int32Array(data)},
     Int64Array: function(data){return new Int64Array(data)},
     BigInt64Array: function(data){return new BigInt64Array(data.split(','))},
+    Float32Array: function(data){return new Float32Array(data)},
+    Float64Array: function(data){return new Float64Array(data)},
     BigInt: function(data){return BigInt(data)},
     Symbol: function(data){return Symbol(data)}
   }
@@ -126,6 +128,13 @@
     for(let i=0;i<KEYS.length;i++){
       let key=KEYS[i], item=obj[key]
       if(includes(clone,key)&&item===clone[key]) continue;
+      if(typeof item==="function"){
+        if(includes(clone,key)){
+          delete clone[key]
+          list.push([ [...PATH,key] ]) //delete BECAUSE datatype is function
+        }
+        continue;
+      }
       let Path=[...PATH,key], path=data[1]&&PATH.length>=2? [data[1],key]: Path;
       
       let notSame=!same( obj[key],clone[key] ), temp=map.get(item)
@@ -191,7 +200,7 @@
     __proto__:null,
     1: function(/*part,obj,info*/){ return false }, //no edits allowed
     2: function(part,obj){ //only addition(no deletion or modification)
-      if(part.length!==2 && part.length!==4) return false; //no deleting or re-referencing
+      if(part.length===1) return false; //no deleting
       try{return valueFrom(part[0],obj),false} //returns false(no overwriting)
       catch{return true}
     },
@@ -247,5 +256,4 @@
   
   
   
-  })()
-  
+})()

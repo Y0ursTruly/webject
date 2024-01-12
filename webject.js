@@ -264,11 +264,12 @@
         //client handshake end
         
         //object update handling start
-        else{ //listen to client if authLevel > 1 AND serial difference
+        else if(token.filter!=1){ //listen to client if authLevel > 1 AND serial difference
           try{
             if(token.decoder) msg=await token.decoder(msg);
             stringToObj(msg,token.object,token.filter); //token.filter is authLevel
-            dispatchClientEdit(msg);
+            msg=objToString(token.object);
+            if(msg!==cmpStr) dispatchClientEdit(msg); //dispatch client edit if it did anything
           }
           catch(err){  console.log(err)  }
           //purposeful or not, unwanted data can be sent and read with error
