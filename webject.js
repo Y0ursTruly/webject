@@ -125,7 +125,7 @@
         throw new RangeError("The authToken MUST be AT LEAST 8 characters long");
       try{
         authTokens[authToken].clients.forEach((_,a)=>a.close(1000))
-        map.get(token.object).tokens.delete(token)
+        map.get( authTokens[authToken].object ).tokens.delete( authTokens[authToken] )
         delete randList[authToken]
         return delete authTokens[authToken]
       }
