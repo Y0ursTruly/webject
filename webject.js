@@ -31,58 +31,56 @@
     return str;
   }
   function dispatchEdit(myMap,sender=null){
-    myMap.dispatchList.forEach((_,dispatch)=>{
-      dispatch.tokenList.forEach((_,token)=>dispatch("edit",token,sender))
+    myMap.tokens.forEach(function(_,token){
+      token.dispatch("edit",token,sender)
     })
   }
-  function addMapping(obj,token,dispatch){ //token is the authToken object
-    let myMap=map.get(obj)
+  function addMapping(token){ //token is the authToken object
+    let myMap=map.get(token.object)
     if(!myMap){ //then set the mapping object
-      objToString(obj,true)
-      myMap={tokenLists:{[token.authToken]:token},dispatchList:new Map([[dispatch,1]])}
-      myMap.interval=setInterval(()=>{
-        let deleted=Object.values(myMap.tokenLists).every(token=>{
-          if(token.deleted) delete myMap.tokenLists[token.authToken];
-          return token.deleted;
-        })
-        if(deleted){
-          clearInterval(myMap.interval)
-          map.delete(obj)
-          return myMap=null
-        }
-        let toSend=objToString(obj)
-        if(toSend!==cmpStr){ //if there are edits
-          Object.values(myMap.tokenLists).forEach(async(token)=>{
+      objToString(token.object,true)
+      myMap={
+        tokens:new Map([[token,1]]),
+        interval:setInterval(function(){
+          if(!myMap.tokens.size){
+            clearInterval(myMap.interval)
+            map.delete(token.object)
+            return myMap=null
+          }
+          const toSend=objToString(token.object)
+          if(toSend!==cmpStr){ //if there are edits
+            myMap.tokens.forEach(async function(_,token){
+              const msg=token.encoder?(await token.encoder(toSend)):toSend;
+              token.clients.forEach(function(_,client){client.send(msg)})
+            })
+            dispatchEdit(myMap)
+          }
+        },20),
+        sendEdit(toSend,sender){
+          myMap.tokens.forEach(async function(_,token){
             let msg=token.encoder?(await token.encoder(toSend)):toSend;
-            token.clients.forEach((_,client)=>client.send(msg))
+            token.clients.forEach(function(_,client){
+              if(client!==sender) client.send(msg);
+            })
           })
-          dispatchEdit(myMap)
+          dispatchEdit(myMap,sender)
         }
-      },20)
-      myMap.sendEdit=(toSend,sender)=>{
-        Object.values(myMap.tokenLists).forEach(async(token)=>{
-          let msg=token.encoder?(await token.encoder(toSend)):toSend;
-          token.clients.forEach((_,client)=>{
-            if(client!==sender) client.send(msg);
-          })
-        })
-        dispatchEdit(myMap,sender)
       }
-      map.set(obj,myMap)
+      map.set(token.object,myMap)
     }
     else{
-      myMap.tokenLists[token.authToken]=token
-      if(!myMap.dispatchList.get(dispatch)) myMap.dispatchList.set(dispatch,1);
+      myMap.length++;
+      myMap.tokens.set(token,1);
     }
   }
   function createToken(authToken,filter,object,dispatch,coding){ //creates the authToken object
-    let toReturn={authToken,filter,clients:new Map(),object,locked:false}
+    let token={authToken,filter,clients:new Map(),object,locked:false,dispatch}
     if(coding){
-      toReturn={...toReturn, encoder:coding.encoder, decoder:coding.decoder}
+      token.encoder=coding.encoder
+      token.decoder=coding.decoder
     }
-    addMapping(object,toReturn,dispatch) //creates map of object(if not done already) then appends the clients array
-    
-    return toReturn //to return is the structure for each authToken object in authTokens
+    addMapping(token) //creates map of object(if not done already)
+    return token //to return is the structure for each authToken object in authTokens
   }
   
   
@@ -118,7 +116,6 @@
       randList[authToken] ||= 1;
       
       authTokens[authToken]=createToken(authToken,filter,object,dispatch,coding) //authLevel
-      dispatch.tokenList.set(authTokens[authToken],1)
       return authToken
     }
     function endToken(authToken){ //authToken remover
@@ -127,9 +124,8 @@
       if(authToken.length<8)
         throw new RangeError("The authToken MUST be AT LEAST 8 characters long");
       try{
-        authTokens[authToken].deleted=true
         authTokens[authToken].clients.forEach((_,a)=>a.close(1000))
-        dispatch.tokenList.delete(authTokens[authToken])
+        map.get(token.object).tokens.delete(token)
         delete randList[authToken]
         return delete authTokens[authToken]
       }
@@ -177,7 +173,6 @@
         }
       })
     }
-    dispatch.tokenList=new Map() //for the mapping system, it is recorded, the tokens in dispatch "view"
     function addListener(event,yourReaction){
       if(typeof event!=="string"||typeof yourReaction!=="function"){
         throw new Error("The event parameter MUST be a STRING\nAND the yourReaction parameter MUST be a FUNCTION >:|")
@@ -258,6 +253,7 @@
           
           if(!token.encoder) client.send(objToString(token.object,true));
           else client.send( await token.encoder(objToString(token.object,true)) );
+          client.token=token
           token.clients.set(client,1)
           dispatch("connect",token,client)
         }
@@ -370,7 +366,7 @@
     return await p
   }
   
-  const syncList={__proto__:null} //sync list for records of syncing
+  const syncList=new Map() //sync list for records of syncing
   //sync object to filePath
   async function sync(filePath,obj,coding){
     var errors=[], yesOrNo={true:"errors",false:"error"}
@@ -384,9 +380,10 @@
       throw new Error(`A total of ${errors.length} ${yesOrNo[errors.length>1]} generated ;-;\n${errors.join("\n")}`);
     }
     
-    if(syncList[filePath]){
-      syncList[filePath].count++;
-      return syncList[filePath].object;
+    const syncToken=syncList.get(filePath)
+    if(syncToken){
+      syncToken.count++;
+      return syncToken.object;
     }
     let encode=data=>coding?coding.encoder(data):data, decode=data=>coding?coding.decoder(data):data;
     
@@ -398,13 +395,15 @@
     
     
     async function dispatch(){
-      fs.writeFileSync(filePath,await encode(objToString(object,true)));
+      while(token.saving) await new Promise(r=>setTimeout(r,10));
+      token.saving=true
+      await fs.promises.writeFile(filePath,await encode(objToString(object,true)))
+      token.saving=false
     }
-    const token={authToken:"sync",clients:new Map(),count:1,dispatch,object}
-    dispatch.tokenList=new Map([[token,1]])
-    addMapping(object,token,dispatch)
+    const token={authToken:"sync",clients:new Map(),count:1,dispatch,object,saving:false}
+    addMapping(token)
     
-    syncList[filePath] ||= token;
+    syncList.set(filePath,token);
     return object
   }
   
@@ -412,12 +411,11 @@
   function desync(filePath){
     if(typeof filePath!=="string")
       throw new TypeError("filePath MUST be a STRING");
-    let token=syncList[filePath];
+    let token=syncList.get(filePath);
     if(!token) throw new Error("NON-EXISTING filePath *-*");
     if(--token.count<1){
-      token.dispatch.tokenList.delete(token);
-      delete syncList[filePath];
-      token.deleted=true;
+      syncList.delete(filePath);
+      map.get(token.object).tokens.delete(token);
     }
   }
   

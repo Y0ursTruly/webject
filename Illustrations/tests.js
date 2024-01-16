@@ -117,17 +117,23 @@ const { addListener } = require('node:process');
     await t.test("Edit and disconnect handling",async function(){
       let resolve=null, temp=new Promise(r=>resolve=r)
       myWebject.addListener("edit",function({socket,token}){
-        console.log("edit",token.authToken,token.object)
-        if(socket) socket.close(1000);
-        assert.equal(token.authToken,viewKey)
+        if(token.authToken===viewKey){
+          assert.ok(!token.clients.get(socket)) //socket was NOT from a viewKey token
+          assert.strictEqual(socket.token.authToken,lvl3Key) //it was in fact from lvl3Key token
+          //the socket argument is from WHO EDITED, if null, edit originated on server side
+          socket?.close(1000); //temp3 closed
+        }
+        assert.strictEqual(token.object,mainObj) //every edit event is with a token that has mainObj
       })
       myWebject.addListener("disconnect",function({token}){
-        console.log(["disconnect"],token.object)
         resolve(token.authToken)
       })
       let temp3=await connect(serverLocation,lvl3Key) //can delete, modify, insert new items
       temp3.newKey=2 //an edit
-      assert.strictEqual(await temp,viewKey)
+      assert.strictEqual(await temp,lvl3Key)
+      temp3.newKey++ //second edit where temp3 is already disconnected
+      await sharedObjectsEqual(sharedObj,sharedObj1)
+      assert.notDeepStrictEqual(temp3,mainObj)
     })
     //failing tests stop
   })
@@ -137,6 +143,9 @@ const { addListener } = require('node:process');
 
   //fifth set of tests
   await test("5) Usage of 'sync' and 'desync' Functions",async function(t){})
+
+  //sixth set of tests
+  await test("6) Usage of encoding {encoder,decoder}",async function(t){})
 
   setTimeout(_=>process.exit(0),50)
 })()
