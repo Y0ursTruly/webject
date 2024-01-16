@@ -207,7 +207,7 @@
       if(info[0].length===2) obj=casingOf(info[0][1]);
       else obj=nonjson[info[0][3]](info[0][1]);
     }
-    else info[0][1]=obj;
+    else info[0][1]=Object.assign(obj,info[0][1]);
     
     for(let i=1;i<info.length;i++){
       let part=info[i], [n,c]=part[0]
@@ -220,6 +220,7 @@
       else if(part.length===2){ //write
         let parent=valueFrom( path,obj,1 )
         if(!same( parent[last],part[1] )) parent[last]=part[1];
+        else Object.assign(parent[last],part[1]);
       }
       else if(part.length===3){ //refer
         if(num>0) valueFrom(path,obj,1)[last] = valueFrom(info[data][num-1],obj);
