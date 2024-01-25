@@ -237,7 +237,7 @@
       }
       else if(part.length===2){ //write
         let parent=valueFrom( path,obj,1 )
-        if(!same( parent[last],part[1] )) parent[last]=part[1];
+        if(!same( parent[last],part[1] )||typeof part[1]==="string") parent[last]=part[1];
         else Object.assign(parent[last],part[1]);
       }
       else if(part.length===3){ //refer
