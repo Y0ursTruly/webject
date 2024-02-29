@@ -15,21 +15,26 @@ const {serve, connect, sync, desync, objToString, stringToObj, objValueFrom} = r
 <ul>
   <li>
     <details>
-      <summary><code>makeTest([tries[,B[,a1[,a2]]]])</code></summary>
+      <summary><code>serve([object[,server]])</code></summary>
       <ul>
-        <li><b>Description: </b>This function generates a cryptographic quiz based on the arguments given. Arguments in this function have <a href="https://github.com/Y0ursTruly/pow_captcha/blob/master/pow.js#L221">these constraints</a></li>
+        <li><b>Description: </b>This function </li>
         <li><b>Returns: </b>
-<pre>[
-  string that looks like garbage but is the cryptographic quiz(hash of correct buffer, incorrect buffer, ranges of where to modify when guessing),
-  string that looks like garbage but is the SOLUTION of the given cryptographic quiz(the correct buffer)
-]</pre>
+<pre>{
+  authTokens, //Map
+  addListener, //function
+  endListener, //function
+  addToken, //function
+  endToken, //function
+  lock, //function
+  unlock, //function
+}</pre>
         </li>
         <li><b>Arguments: </b>
           <ul>
-            <li><b>tries </b><code>number (default is 16^4)</code> The maximum amount of combinations(of the buffer) that might get guessed before arriving at the solution. In the cryptographic quiz, this is expressed in one or more ranges that multiply up to this number</li>
-            <li><b>B </b><code>number (default is 1024)</code> The length of the buffer. This will not affect tries because specific ranges across the buffer are chosen, but it prevents an attacker from prehashing all combinations of the buffer</li>
-            <li><b>a1 </b><code>number (default is 0)</code> The lowest value a byte can be. For example if a1 is 65, there will be no byte less than 'A' in the buffer</li>
-            <li><b>a2 </b><code>number (default is 256)</code> The highest value a byte can be plus one. For example if a2 is 91, there will be no byte greater than 'Z' in the buffer</li>
+            <li><b>object </b><code>object (default is {})</code>The default object that will be served when <code>addToken</code> is called without a specified object</li>
+          </ul>
+          <ul>
+            <li><b>server </b><code>instance of http.createServer</code>The server(instance of [http.createServer](https://nodejs.org/api/http.html#httpcreateserveroptions-requestlistener)) that the websocket will be existing on, or one created on port 8009</li>
           </ul>
         </li>
       </ul>

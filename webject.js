@@ -86,7 +86,7 @@
   
   
   //serve an object
-  function serve(obj,server){ //serve an object(synchronous because this IS the server clients wait to connect to)
+  function serve(obj={},server){ //serve an object(synchronous because this IS the server clients wait to connect to)
     if(typeof obj!=="object"||obj===null){throw new Error("Parameter 'obj' MUST be an OBJECT >:|")}
     try{var ws=new webSocket.Server({server})}
     catch{
