@@ -17,7 +17,7 @@ const {serve, connect, sync, desync, objToString, stringToObj, objValueFrom} = r
     <details>
       <summary><code>serve([object[,server]])</code></summary>
       <ul>
-        <li><b>Description: </b>This function </li>
+        <li><b>Description: </b>Creates a websocket and returns methods for configuring <code>authTokens</code> to share objects</li>
         <li><b>Returns: </b>
 <pre>{
   authTokens, //Map
