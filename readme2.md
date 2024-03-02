@@ -25,7 +25,7 @@ const {serve, connect, sync, desync, objToString, stringToObj, objValueFrom} = r
             <li><code>authTokens</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map">Map</a></li>
             <li>
               <details>
-                <summary><code>addListener(event,yourReaction[])</code></summary>
+                <summary><code>addListener(event,yourReaction)</code></summary>
                 <ul>
                   <li><b>Description: </b>adds an event listener for the myWebject instance where the possible events are <code>edit</code>, <code>connect</code> and <code>disconnect</code>. An edit occurs when an object is edited, and the connect and disconnect events occur on when users connect and disconnect to and from authTokens</li>
                   <li><b>Returns: </b>
@@ -35,8 +35,107 @@ undefined
                   </li>
                   <li><b>Arguments: </b>
                     <ul>
-                      <li><b>event </b><code>String (either "edit", "connect" or "disconnect")</code>the type of event to listen to</li>
-          <li><b>yourReaction </b><code>function</code> A function that responds to when an event occurs</li>
+                      <li><b>event </b><code>String (either "edit", "connect" or "disconnect")</code> The type of event to listen to</li>
+                      <li><b>yourReaction </b><code>function</code> A function that responds to when an event occurs</li>
+                    </ul>
+                  </li>
+                </ul>
+              </details>
+            </li>
+            <!---->
+            <li>
+              <details>
+                <summary><code>endListener(event,yourReaction)</code></summary>
+                <ul>
+                  <li><b>Description: </b>ends an event listener for the myWebject instance where the possible events are <code>edit</code>, <code>connect</code> and <code>disconnect</code>. An edit occurs when an object is edited, and the connect and disconnect events occur on when users connect and disconnect to and from authTokens</li>
+                  <li><b>Returns: </b>
+<pre>
+undefined
+</pre>
+                  </li>
+                  <li><b>Arguments: </b>
+                    <ul>
+                      <li><b>event </b><code>String (either "edit", "connect" or "disconnect")</code> The type of event being listen to</li>
+                      <li><b>yourReaction </b><code>function</code> A function that was responding to when an event occurs</li>
+                    </ul>
+                  </li>
+                </ul>
+              </details>
+            </li>
+            <!---->
+            <li>
+              <details>
+                <summary><code>addToken(filter[object[,specificToken[,coding]]])</code></summary>
+                <ul>
+                  <li><b>Description: </b>configures an authToken with a given <code>filter</code> (used to control user edits), an optional <code>object</code> or the one passed in when calling the <code>serve</code> function, a <code>specificToken</code> of your choice or one generated for you, then the <code>coding</code> which is used for custom encoding/decoding</li>
+                  <li><b>Returns: </b>
+<pre>
+the string value of the authToken generated (either specificToken or one that was generated for you)
+</pre>
+                  </li>
+                  <li><b>Arguments: </b>
+                    <ul>
+                      <li><b>filter </b><code>number or function</code> Manages/controls the edits that a user connected via this authToken attempts to make (if number, 1 for no edits, 2 for only adding new values[not modifying or deleting] or 3 for all edits, else a custom function that would return true if a specific edit is allowed)</li>
+                      <li><b>object </b><code>Object</code> The object that users connected via this authToken will connect to (the one given here, else the one given in the serve function)</li>
+                      <li><b>specificToken </b><code>String</code> A unique key that is the string authToken that users can connect to an object by</li>
+                      <li><b>coding </b><code>Object</code> Defines custom encoding scheme, therefore if a user connects and doesn't have the same encoding scheme, they'd be unable to process the shared object and be booted</li>
+                    </ul>
+                  </li>
+                </ul>
+              </details>
+            </li>
+            <!---->
+            <li>
+              <details>
+                <summary><code>endToken(authToken)</code></summary>
+                <ul>
+                  <li><b>Description: </b>ends support of the given string authToken that users were able to connect to an object by</li>
+                  <li><b>Returns: </b>
+<pre>
+Boolean (true)
+</pre>
+                  </li>
+                  <li><b>Arguments: </b>
+                    <ul>
+                      <li><b>authToken </b><code>String</code> The unique key that is the string authToken that users were able to connect to an object by</li>
+                    </ul>
+                  </li>
+                </ul>
+              </details>
+            </li>
+            <!---->
+            <li>
+              <details>
+                <summary><code>lock(authToken)</code></summary>
+                <ul>
+                  <li><b>Description: </b>Prevents new connections to the given authToken</li>
+                  <li><b>Returns: </b>
+<pre>
+Boolean (true)
+</pre>
+                  </li>
+                  <li><b>Arguments: </b>
+                    <ul>
+                      <li><b>authToken </b><code>String</code> The unique key that is the string authToken that users were able to connect to an object by</li>
+                    </ul>
+                  </li>
+                </ul>
+              </details>
+            </li>
+            <!---->
+            <li>
+              <details>
+                <summary><code>unlock(authToken)</code></summary>
+                <ul>
+                  <li><b>Description: </b>Allows new connections to the given authToken</li>
+                  <li><b>Returns: </b>
+<pre>
+Boolean (true)
+</pre>
+                  </li>
+                  <li><b>Arguments: </b>
+                    <ul>
+                      <li><b>authToken </b><code>String</code> A unique key that is the string authToken that users can connect to an object by</li>
                     </ul>
                   </li>
                 </ul>
@@ -45,15 +144,6 @@ undefined
             <!---->
           </ul>
         </details>
-<!--<pre>{
-  authTokens, //Map
-  addListener, //function
-  endListener, //function
-  addToken, //function
-  endToken, //function
-  lock, //function
-  unlock, //function
-}</pre>-->
         </li>
         <li><b>Arguments: </b>
           <ul>
@@ -68,34 +158,25 @@ undefined
   </li>
   <li>
     <details>
-      <summary><code>takeTest(input)</code></summary>
+      <summary><code>connect(location,authToken[onFail[,obj[,coding]]])</code></summary>
       <ul>
-        <li><b>Description: </b>This function solves a cryptographic quiz based on the string input given</li>
+        <li><b>Description: </b>An asynchronous function that connects to and when resolved, returns an object that is hosted on a websocket with a specified authToken</li>
         <li><b>Returns: </b>
-<pre>string that looks like garbage but is the SOLUTION of the given cryptographic quiz(the correct buffer)</pre>
+<pre>
+A promise that when resolved, returns an object that is hosted on a websocket with a specified authToken
+</pre>
         </li>
         <li><b>Arguments: </b>
           <ul>
-            <li><b>input </b><code>string</code> A string which is a cryptographic quiz</li>
+            <li><b>location </b><code>String (ws or wss protocol)</code> The remote destination's WebSocket URL for the object</li>
+            <li><b>authToken </b><code>String</code> The remote destination's authToken for the object</li>
+            <li><b>onFail </b><code>function</code> This is called when disconnected from the websocket (whether the initial connect fails or some time after, the connection was cut)</li>
+            <li><b>obj </b><code>Object</code> A local, given, custom object that will be modified by the contents of the server's object</li>
+            <li><b>coding </b><code>Object</code> Defines custom encoding scheme; used for when the server has the same custom encoding scheme and thus the user would understand the server</li>
           </ul>
         </li>
       </ul>
     </details>
   </li>
-  <li>
-    <details>
-      <summary><code>takeTestAsync(input)</code></summary>
-      <ul>
-        <li><b>Description: </b>To avoid hanging the process that called it, this runs the takeTest function in a worker thread</li>
-        <li><b>Returns: </b>
-<pre>string that looks like garbage but is the SOLUTION of the given cryptographic quiz(the correct buffer)</pre>
-        </li>
-        <li><b>Arguments: </b>
-          <ul>
-            <li><b>input </b><code>string</code> A string which is a cryptographic quiz</li>
-          </ul>
-        </li>
-      </ul>
-    </details>
-  </li>
+  <!---->
 </ul>
