@@ -19,7 +19,33 @@ const {serve, connect, sync, desync, objToString, stringToObj, objValueFrom} = r
       <ul>
         <li><b>Description: </b>Creates a websocket and returns methods for configuring <code>authTokens</code> to share objects</li>
         <li><b>Returns: </b>
-<pre>{
+        <details>
+          <summary><u><code>myWebject Instance</code></u></summary>
+          <ul>
+            <li><code>authTokens</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map">Map</a></li>
+            <li>
+              <details>
+                <summary><code>addListener(event,yourReaction[])</code></summary>
+                <ul>
+                  <li><b>Description: </b>adds an event listener for the myWebject instance where the possible events are <code>edit</code>, <code>connect</code> and <code>disconnect</code>. An edit occurs when an object is edited, and the connect and disconnect events occur on when users connect and disconnect to and from authTokens</li>
+                  <li><b>Returns: </b>
+<pre>
+undefined
+</pre>
+                  </li>
+                  <li><b>Arguments: </b>
+                    <ul>
+                      <li><b>event </b><code>String (either "edit", "connect" or "disconnect")</code>the type of event to listen to</li>
+          <li><b>yourReaction </b><code>function</code> A function that responds to when an event occurs</li>
+                    </ul>
+                  </li>
+                </ul>
+              </details>
+            </li>
+            <!---->
+          </ul>
+        </details>
+<!--<pre>{
   authTokens, //Map
   addListener, //function
   endListener, //function
@@ -27,7 +53,7 @@ const {serve, connect, sync, desync, objToString, stringToObj, objValueFrom} = r
   endToken, //function
   lock, //function
   unlock, //function
-}</pre>
+}</pre>-->
         </li>
         <li><b>Arguments: </b>
           <ul>
