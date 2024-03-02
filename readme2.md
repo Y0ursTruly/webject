@@ -34,7 +34,7 @@ const {serve, connect, sync, desync, objToString, stringToObj, objValueFrom} = r
             <li><b>object </b><code>object (default is {})</code>The default object that will be served when <code>addToken</code> is called without a specified object</li>
           </ul>
           <ul>
-            <li><b>server </b><code>instance of http.createServer</code>The server(instance of [http.createServer](https://nodejs.org/api/http.html#httpcreateserveroptions-requestlistener)) that the websocket will be existing on, or one created on port 8009</li>
+            <li><b>server </b><code>instance of http.createServer</code>The server(instance of <a href="https://nodejs.org/api/http.html#httpcreateserveroptions-requestlistener">http.createServer</a>) that the websocket will be existing on, or one created on port 8009</li>
           </ul>
         </li>
       </ul>
