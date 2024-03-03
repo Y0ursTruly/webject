@@ -74,7 +74,7 @@
     }
   }
   function createToken(authToken,filter,object,dispatch,coding){ //creates the authToken object
-    let token={authToken,filter,clients:new Map(),object,locked:false,dispatch}
+    let token={authToken,filter,clients:new Map(),object,locked:false,dispatch,encoder:null,decoder:null}
     if(coding){
       token.encoder=coding.encoder
       token.decoder=coding.decoder
@@ -195,17 +195,16 @@
       let close=client.close.bind(client), ping=null, lastPing=Number(new Date()), alreadyClosed=false
       let clientMsgCount=0, token=null, dispatchClientEdit=(msg)=>map.get(token.object).sendEdit(msg,client)
       
-      function closeClient(n,now){ //to ensure socket cleanup
+      function closeClient(n=1000,now){ //to ensure socket cleanup
         if(alreadyClosed){return null} //don't repeat close if already closed
         alreadyClosed=true
         clearInterval(ping) //clearing this interval
-        if(token) token.clients.delete(client);
-        dispatch("disconnect",token,client) //if endToken was used, the ev.token value would be null
-        if(now){return client.terminate()} //Connection Broken
-        if(typeof n==="number"){
-          try{return close(...arguments)}catch{return true}
+        if(token){
+          token.clients.delete(client)
+          dispatch("disconnect",token,client)
         }
-        else{ try{return close(1000)}catch{return true} }
+        if(now){return client.terminate()} //Connection Broken
+        try{return close(n)}catch{return true}
       }
       client.close=closeClient //every socket.close that I call leads to this
       let afk=setTimeout(()=>{  closeClient(null,true)  },2000)

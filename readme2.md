@@ -178,5 +178,37 @@ A promise that when resolved, returns an object that is hosted on a websocket wi
       </ul>
     </details>
   </li>
-  <!---->
+  <!-- functions left: objToString, stringToObj, sync, desync -->
 </ul>
+
+# Structures
+## Events
+Let's look at what is given to `yourReaction` when you call the `addListener` function (which is a method of what is returned after calling the `serve` function)
+```
+{
+  token: Object, //an authToken's object or null
+  socket: Object, //a websocket client object or null
+  type: String, //a string(either "edit", "connect", or "disconnect")
+  lock: Function, //prevents more connections to an authToken passed in OR this event's token.authToken if called with none given
+  unlock: Function, //allows new connections to an authToken passed in OR this event's token.authToken if called with none given
+  preventDefault: Function //stops passing the event to other listeners after (the listener that calls this will be the last listener to see the event)
+}
+```
+The `or null` parts with `token` and `socket` only apply to if the event is of _type_ **edit**.<br>
+These would be null when an edit on an object occured on the server side, thus there is no client token and socket related/responsible for the event
+
+## Token
+The authToken _object_, highly integral to this repository because authTokens configure and define how others connect/sync to your objects.<br>
+Let's look at its structure
+```
+{
+  authToken: String,
+  filter: Number OR Function,
+  clients: Map,
+  object: Object,
+  locked: Boolean,
+  dispatch: Function,
+  encoder: Function OR null,
+  decoder: Function OR null
+}
+```
