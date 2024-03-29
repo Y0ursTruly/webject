@@ -212,3 +212,21 @@ Let's look at its structure
   decoder: Function OR null
 }
 ```
+This is authToken string, next is a filter which is either 1,2,3 or a function that would filter every **part** of an incoming edit, followed by a Map of websocket connections to this authToken, followed by the object that this authToken is meant to shared, followed by if it's locked, then a dispatch function responsible for this authToken (many authTokens might have the same dispatcher responsible for it), followed by an optional encoder and decoder for custom encoding.
+
+## Part
+What is meant by **part**? `objToString(someObj)` always returns `JSON.stringify(someArray)` where *someArray* is made up of **part**s. Each *part* comes in the format
+```
+the value in ONE index(part) of an objToString array are 1 of the following types:
+
+[path] //delete
+[path,data] //value
+[path,refPath,num] //reference
+[path,data,0,tag] //custom datatype value
+
+- path is array of strings to represent a location
+- data is an instance of a datatype to represent a value
+- refPath is an index to a referred path located in another index(part) or the path array itself
+- num is a number which can be 3 options: 0=not mentioned, 1=mentioned as path, 2=mentioned as reference
+- tag is the [Symbol.toStringTag] property of a value and is used for TypedArray, BigInt, Symbol and undefined(which has no [Symbol.toStringTag] but isn't JSON)
+```
