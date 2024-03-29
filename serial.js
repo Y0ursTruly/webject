@@ -251,9 +251,29 @@
     }
     return obj
   }
+
+  function partFilter(manditoryPath=[],allowAllEdits=false){
+    if(typeof manditoryPath==="string") manditoryPath=[manditoryPath];
+    if(typeof allowAllEdits!=="boolean") allowAllEdits=Boolean(allowAllEdits);
+    return function(part,obj){
+      if(part[0].length<=manditoryPath.length) return false;
+      for(let i=0;i<manditoryPath.length;i++)
+        if(manditoryPath[i]!==part[0][i]) return false;
+      try{if(!allowAllEdits) return valueFrom(obj,path[0]),false;}
+      finally{if(part.length!==3) return true;}
+      
+      //if we are still processing, this part is a reference
+      //now we must ensure that the reference is also inside manditoryPath
+      if(part[2].length<=manditoryPath.length) return false;
+      for(let i=0;i<manditoryPath.length;i++)
+        if(manditoryPath[i]!==part[2][i]) return false;
+        try{if(!allowAllEdits) return valueFrom(obj,path[0]),false;}
+        finally{return true}
+    }
+  }
   
   
-  module.exports={objToString, stringToObj, objValueFrom:valueFrom};
+  module.exports={objToString, stringToObj, partFilter, objValueFrom:valueFrom};
   
   
   

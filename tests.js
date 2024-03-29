@@ -1,5 +1,5 @@
 const test=require('node:test'), assert=require('node:assert'), fs=require('node:fs');
-const {serve, connect, sync, desync, objToString, stringToObj, objValueFrom}=require('.');
+const {serve, connect, sync, desync, objToString, stringToObj, partFilter, objValueFrom}=require('.');
 
 (async function(){
   let slash=process.platform=="win32"?"\\":"/", serverLocation="ws://localhost:8009"
@@ -55,6 +55,20 @@ const {serve, connect, sync, desync, objToString, stringToObj, objValueFrom}=req
     await t.test("Usage of objValueFrom",async function(){
       assert.strictEqual(objValueFrom(['c','0'],mainObj),mainObj.c[0])
       assert.strictEqual(objValueFrom(['a','a2','a3'],mainObj),mainObj.a.a2.a3)
+    })
+    await t.test("Ensuring Correct Filters Generated from partFilter",async function(){
+      const testObj={a:{b:{c:2}}}, testObjClone={a:{b:{c:2}}}, testObj1={a:{b:{c:2}}}
+      objToString(testObj)
+      objToString(testObj1)
+      testObj1.a.b.c++;// testObj1.d="e";
+      const edits=objToString(testObj1);
+      console.log(testObj.a.b.c,testObj1.a.b.c,edits,objToString(testObj1,true))
+      stringToObj(edits,testObj,partFilter(["a","b"])) //no edits should've occured
+      assert.deepStrictEqual(testObj,testObjClone)
+      stringToObj(edits,testObj,partFilter(["a","b"],true)) //only c should've been edited
+      assert.strictEqual(testObj.d,undefined)
+      console.log(testObj.a.b.c,testObj1.a.b.c,edits)
+      assert.strictEqual(testObj.a.b.c,3)
     })
   })
 

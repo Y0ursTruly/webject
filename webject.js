@@ -11,7 +11,7 @@
 
 
   const webSocket=require('ws'), fs=require('node:fs'), path=require('node:path')
-  const {objToString,stringToObj,objValueFrom}=require(path.join(__dirname,'serial.js'))
+  const {objToString,stringToObj,partFilter,objValueFrom}=require(path.join(__dirname,'serial.js'))
   const crypto=require('node:crypto'), cmpStr=objToString({})
   
   let randList={__proto__:null} //this block here is for recording random UNIQUE keys
@@ -419,7 +419,7 @@
   }
   
   
-  global.webject||={serve, connect, sync, desync, objToString, stringToObj, objValueFrom};
+  global.webject||={serve, connect, sync, desync, objToString, stringToObj, partFilter, objValueFrom};
   module.exports=global.webject;
   
   
