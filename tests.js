@@ -60,14 +60,11 @@ const {serve, connect, sync, desync, objToString, stringToObj, partFilter, objVa
       const testObj={a:{b:{c:2}}}, testObjClone={a:{b:{c:2}}}, testObj1={a:{b:{c:2}}}
       objToString(testObj)
       objToString(testObj1)
-      testObj1.a.b.c++;// testObj1.d="e";
-      const edits=objToString(testObj1);
-      console.log(testObj.a.b.c,testObj1.a.b.c,edits,objToString(testObj1,true))
+      testObj1.a.b.c++; testObj1.d="e";
       stringToObj(edits,testObj,partFilter(["a","b"])) //no edits should've occured
       assert.deepStrictEqual(testObj,testObjClone)
       stringToObj(edits,testObj,partFilter(["a","b"],true)) //only c should've been edited
       assert.strictEqual(testObj.d,undefined)
-      console.log(testObj.a.b.c,testObj1.a.b.c,edits)
       assert.strictEqual(testObj.a.b.c,3)
     })
   })

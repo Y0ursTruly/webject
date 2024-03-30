@@ -252,8 +252,11 @@
     return obj
   }
 
-  function partFilter(manditoryPath=[],allowAllEdits=false){
-    if(typeof manditoryPath==="string") manditoryPath=[manditoryPath];
+  function partFilter(manditoryPath,allowAllEdits=false){
+    if(!Array.isArray(manditoryPath)) manditoryPath=[manditoryPath];
+    for(let i=0;i<manditoryPath.length;i++)
+      if(typeof manditoryPath[i]!=="string")
+        throw new TypeError("manditoryPath MUST be an ARRAY of STRINGs");
     if(typeof allowAllEdits!=="boolean") allowAllEdits=Boolean(allowAllEdits);
     return function(part,obj){
       if(part[0].length<=manditoryPath.length) return false;

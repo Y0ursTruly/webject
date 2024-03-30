@@ -1,5 +1,5 @@
-# webject
-Share Objects Online with the power of websockets. Keys, Values AND references. Webject is short for Web Object and it really is a system for sharing objects on the web. Someone can host an object, and make authTokens for others online to share this object
+# Webject
+Share (and sync) Objects Online with the power of websockets. Keys, Values AND References. Webject is short for Web Object and it really is a system for sharing objects on the web. Someone can host an object, then create and configure an authToken, enabling clients to connect to the object with the permissions/constraints defined by the respective authToken it a client connects with. Why Webject? This tool has usage for whenever one wishes to either collaborate on or simply share/sync real time data remotely with ease >:D
 <br>
 - **Please note**: Please ensure that the same version of *webject* is used across the different points/ends of your application that use it
 # Installation
@@ -7,118 +7,350 @@ Three ways
 - *[Download Github Package as ZIP](https://github.com/Y0ursTruly/webject/archive/refs/heads/main.zip)*
 - `git clone https://github.com/Y0ursTruly/webject.git`
 - `npm install webject`
-# How it Works
-- For the serialisation/deserialisation recursive object cloner that I made for fun a while back I modified to return a "log" which can be translated to an object even with correct referencing
-- As for the logic of the sharing, the person who would *`serve`* objects is in control and can *GRANT* different *levels* of access to people who *`connect`* through a system of *authTokens* that the person who did the *`serve`* also has tools to manage
-- For sharing this object(the "medium"/method), I create a websocket using the nodejs module `ws`. It will try to use a server(a parameter you give) and if it fails(like if you gave no server parameter), it would then selfhost the socket
-- As to the datatypes shared, everything that [JSON](https://www.geeksforgeeks.org/json-data-types/) deals with AND `undefined` values AND [circular objects](https://www.akinjide.me/2018/circular-reference-in-javascript/)
-<br>~~Support for more data types coming soon~~
-- For the various parts of this system, do check out *[ILLUSTATIONS](https://github.com/Y0ursTruly/webject/tree/main/Illustrations)* for examples :D
+# Importing
+```
+const {serve, connect, sync, desync, objToString, stringToObj, objValueFrom} = require("webject");
+```
+# Temporary Advisory
+VERY NEARLY ALMOST FINISHED, added a partFilter function after I was "finished" with my renovations, but testing it revealed one dormant bug THAT I MUST FIX before publishing the new, heavily updated version of this package
 
-# Usage
-Using `require` to get `webject.js` is the main idea..
-<br>So it may vary from `require('webject')` if installed it as *[An NPMJS Package](https://npmjs.com/package/webject)*
-<br>**OR** `require('path/to/webject.js')` if you installed it as the *[Github Package](https://github.com/Y0ursTruly/webject.git)*
-<br>*[Example Usage](https://github.com/Y0ursTruly/webject/blob/main/Illustrations/clientAndServer.js)*
-<br>For examples of the different aspects of this and different ways to use it, check out *[these examples](https://github.com/Y0ursTruly/webject/tree/main/Illustrations)*
-#
-You can even use the `connect` function from browser if you load a script tag from [this url](https://cdn.jsdelivr.net/npm/webject@latest/webject.js)(look at the *[comments of webject.js](https://github.com/Y0ursTruly/webject/blob/main/webject.js#L13)* for example)
-<br>You can go to a *[LIVE WEB EXAMPLE](https://webject-example.paultaylor2.repl.co/)* (which hosts the equivalent of *[an example](https://github.com/Y0ursTruly/webject/blob/main/Illustrations/httpServerExample.js)*) then paste the following code `connect("wss://webject-example.paultaylor2.repl.co/",authToken).then(obj=>window.mySharedObj=obj)` and `mySharedObj` would be the *shared object*
-#
-**DO NOTE**: This applies for all functions I have, that if you enter falsish values(like `null,0,"",false,undefined`), the default actions would be taken as if you never input anything into that argument(eg: `serve(myObject,null)` would have the same effect of `serve(myObject)`)
-<br>Now there are *TWO* main functions that make up the usage: `serve` and `connect` but *SIX* in total, the other 4 being `sync`, `desync`, `objToString`, `stringToObj`
-<br>*eg*:`let {serve,connect}=require('webject')`
 # Modules
-- **serve**: This is a *synchonous* function that would take in two arguments(*obj* and *server*). If a server isn't provided, it will attempt to serve, however the *obj* argument is **NECESSARY** as it will be an object that you will share
-<br>*eg*: `let myWebject=serve(myObject)`
-<br>However, the *addToken* function is **required** to make a way for a client to share your object through a token you would give them
-<br>Moreover you can *addToken* while passing in a different object to share that different object(each *authToken* can share a different object)
-<br>*eg*:
-```js
-let myToken=myWebject.addToken(1,someDifferentObject) //leaving out second parameter would addToken for myObject by default
-```
-<br>Additionally, you can set a *manual token* with the *addToken* function using the third parameter called *specificToken* (because by default the token is a randomly generated string)
-<br>*eg*:
-```js
-let myToken=myWebject.addToken(1,null,"my_key")
-//null/no value/undefined would mean sharing the original object from the serve function and "my_key" would be the value returned IF that is a unique token
-```
-- **connect**: This is an *asynchronous* function would take in two manditory arguments(*location* and *authToken*) and two optional arguments(*onFail* and *object*). For the manditory ones, as you must know where the object is being served **AND** must have a valid *authToken* to access it.
-<br>For the first optional argument, *onFail*, it must be a function and it is called whenever the connection is closed/broken
-<br>For the second optional argument, *object*, it is the object that *you* want the remote object to be(usually the function returns a *new* object for you)
-<br>example usage of the optional arguments can be seen in *[onFailTesting.js](https://github.com/Y0ursTruly/webject/edit/main/Illustrations/onFailTesting.js)*
-<br>*eg*:
-```js
-let mySharedObject=await connect('wss://example.com:8009',myGivenAuthToken)
-//port 8009 is the default port from this when the websocket is created(and the serve function isn't given a server parameter)
-```
-- **sync**: This is a *synchronous* function with three arguments(*obj*, *filePath*, *spacing*). If the third argument is not provided, file saving from the object would be done without extra spacing(one chunked line). This function returns an interval ID for the interval it sets to write to specified *filePath* when the object changes
-- **desync**: This is a *synchronous* function that takes in one arguments(*syncID*). It clears the interval of ID *syncID* quite literally, however it does throw an error if it is an invalid *syncID*
-- **objToString**: This function is forwarded from *[serial.js](https://github.com/Y0ursTruly/webject/blob/main/serial.js)* and takes in an object and returns a stringified version of the object
-<br>This is a *synchronous* function that takes in four arguments(*obj*, *cmpStr*, *spacing*, *checkClone*)
-<br>If the second parameter is used, it will return only the difference from a previous *objToString* of the object(implemented to send only the changes of the object)
-<br>The last 2 are optional, since one might only care about spacing for visual appeal, and when my system calls this function, it never uses the checkClone option, however you might want to use it for fun ;D
-- **stringToObj**: This function is forwarded from *[serial.js](https://github.com/Y0ursTruly/webject/blob/main/serial.js)* and takes in either a string and returns the object parsed from that string
-<br>This is a *synchronous* function that takes in two arguments(*string*, *obj*). If the second parameter isn't used, it ONLY returns the object parsed from the string. However, if the second parameter is used(*obj*), it modifies *obj* into the parsed object from the string while still pointing to the nested objects that are still objects according to the string's information. See *[noRepointing.js](https://github.com/Y0ursTruly/webject/blob/main/Illustrations/noRePointing.js)* as a code demonstration. As for the third parameter, it's a boolean and if true, it will assume that it is only receiving the *difference* and not the *entire* object
+<ul>
+  <li>
+    <details>
+      <summary><code>serve([object[,server]])</code></summary>
+      <ul>
+        <li><b>Description: </b>Creates a websocket and returns methods for configuring <a href="#token">authToken</a>s to share objects</li>
+        <li><b>Returns: </b>
+        <details>
+          <summary><u><code>myWebject Instance</code></u></summary>
+          <ul>
+            <li><code>authTokens</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map">Map</a></li>
+            <li>
+              <details>
+                <summary><code>addListener(event,yourReaction)</code></summary>
+                <ul>
+                  <li><b>Description: </b>adds an event listener for the myWebject instance where the possible events are <code>edit</code>, <code>connect</code> and <code>disconnect</code>. An edit occurs when an object is edited, and the connect and disconnect events occur on when users connect and disconnect to and from authTokens</li>
+                  <li><b>Returns: </b>
+<pre>
+undefined
+</pre>
+                  </li>
+                  <li><b>Arguments: </b>
+                    <ul>
+                      <li><b>event </b><code>String (either "edit", "connect" or "disconnect")</code> The type of <a href="#event">event</a> to listen to</li>
+                      <li><b>yourReaction </b><code>function</code> A function that responds to when an <a href="#event">event</a> occurs</li>
+                    </ul>
+                  </li>
+                </ul>
+              </details>
+            </li>
+            <!---->
+            <li>
+              <details>
+                <summary><code>endListener(event,yourReaction)</code></summary>
+                <ul>
+                  <li><b>Description: </b>Ends an event listener for the myWebject instance where the possible events are <code>edit</code>, <code>connect</code> and <code>disconnect</code>. An edit occurs when an object is edited, and the connect and disconnect events occur on when users connect and disconnect to and from authTokens</li>
+                  <li><b>Returns: </b>
+<pre>
+undefined
+</pre>
+                  </li>
+                  <li><b>Arguments: </b>
+                    <ul>
+                      <li><b>event </b><code>String (either "edit", "connect" or "disconnect")</code> The type of <a href="#event">event</a> being listen to</li>
+                      <li><b>yourReaction </b><code>function</code> A function that was responding to when an <a href="#event">event</a> occurs</li>
+                    </ul>
+                  </li>
+                </ul>
+              </details>
+            </li>
+            <!---->
+            <li>
+              <details>
+                <summary><code>addToken(filter[,object[,specificToken[,coding]]])</code></summary>
+                <ul>
+                  <li><b>Description: </b>Configures an <a href="#token">authToken</a> with a given <code>filter</code> (used to control user edits), an optional <code>object</code> or the one passed in when calling the <code>serve</code> function, a <code>specificToken</code> of your choice or one generated for you, then the <code>coding</code> which is used for custom encoding/decoding</li>
+                  <li><b>Returns: </b>
+<pre>
+the string value of the authToken generated (either specificToken or one that was generated for you)
+</pre>
+                  </li>
+                  <li><b>Arguments: </b>
+                    <ul>
+                      <li><b>filter </b><code>Number or function</code> Manages/controls the edits that a user connected via this authToken attempts to make (if number, 1 for no edits, 2 for only adding new values[not modifying or deleting] or 3 for all edits, else a custom function that would return true if a specific edit is allowed)</li>
+                      <li><b>object </b><code>Object</code> The object that users connected via this <a href="#token">authToken</a> will connect to (the one given here, else the one given in the serve function)</li>
+                      <li><b>specificToken </b><code>String</code> A unique key that is the string <a href="#token">authToken</a> that users can connect to an object by</li>
+                      <li><b>coding </b><code>Object</code> Defines <a href="#coding">custom encoding scheme</a>, therefore if a user connects and doesn't have the same encoding scheme, they'd be unable to process the shared object and be booted</li>
+                    </ul>
+                  </li>
+                </ul>
+              </details>
+            </li>
+            <!---->
+            <li>
+              <details>
+                <summary><code>endToken(authToken)</code></summary>
+                <ul>
+                  <li><b>Description: </b>Ends support of the given string authToken that users were able to connect to an object by</li>
+                  <li><b>Returns: </b>
+<pre>
+Boolean (true)
+</pre>
+                  </li>
+                  <li><b>Arguments: </b>
+                    <ul>
+                      <li><b>authToken </b><code>String</code> The unique key that is the string <a href="#token">authToken</a> that users were able to connect to an object by</li>
+                    </ul>
+                  </li>
+                </ul>
+              </details>
+            </li>
+            <!---->
+            <li>
+              <details>
+                <summary><code>lock(authToken)</code></summary>
+                <ul>
+                  <li><b>Description: </b>Prevents new connections to the given authToken</li>
+                  <li><b>Returns: </b>
+<pre>
+Boolean (true)
+</pre>
+                  </li>
+                  <li><b>Arguments: </b>
+                    <ul>
+                      <li><b>authToken </b><code>String</code> The unique key that is the string <a href="#token">authToken</a> that users were able to connect to an object by</li>
+                    </ul>
+                  </li>
+                </ul>
+              </details>
+            </li>
+            <!---->
+            <li>
+              <details>
+                <summary><code>unlock(authToken)</code></summary>
+                <ul>
+                  <li><b>Description: </b>Allows new connections to the given authToken</li>
+                  <li><b>Returns: </b>
+<pre>
+Boolean (true)
+</pre>
+                  </li>
+                  <li><b>Arguments: </b>
+                    <ul>
+                      <li><b>authToken </b><code>String</code> A unique key that is the string <a href="#token">authToken</a> that users can connect to an object by</li>
+                    </ul>
+                  </li>
+                </ul>
+              </details>
+            </li>
+            <!---->
+          </ul>
+        </details>
+        </li>
+        <li><b>Arguments: </b>
+          <ul>
+            <li><b>object </b><code>object (default is {})</code>The default object that will be served when <code>addToken</code> is called without a specified object</li>
+          </ul>
+          <ul>
+            <li><b>server </b><code>instance of http.createServer</code>The server(instance of <a href="https://nodejs.org/api/http.html#httpcreateserveroptions-requestlistener">http.createServer</a>) that the websocket will be existing on, or one created on port 8009</li>
+          </ul>
+        </li>
+      </ul>
+    </details>
+  </li>
+  <li>
+    <details>
+      <summary><code>connect(location,authToken[,onFail[,obj[,coding]]])</code></summary>
+      <ul>
+        <li><b>Description: </b>An asynchronous function that connects to and when resolved, returns an object that is hosted on a websocket with a specified authToken</li>
+        <li><b>Returns: </b>
+<pre>
+A promise that when resolved, returns an object that is hosted on a websocket with a specified authToken
+</pre>
+        </li>
+        <li><b>Arguments: </b>
+          <ul>
+            <li><b>location </b><code>String (ws or wss protocol)</code> The remote destination's WebSocket URL for the object</li>
+            <li><b>authToken </b><code>String</code> The remote destination's <a href="#token">authToken</a> for the object</li>
+            <li><b>onFail </b><code>function</code> This is called when disconnected from the websocket (whether the initial connect fails or some time after, the connection was cut)</li>
+            <li><b>obj </b><code>Object</code> A local, given, custom object that will be modified by the contents of the server's object</li>
+            <li><b>coding </b><code>Object</code> Defines <a href="#coding">custom encoding scheme</a>; used for when the server has the same custom encoding scheme and thus the user would understand the server</li>
+          </ul>
+        </li>
+      </ul>
+    </details>
+  </li>
+  <!---->
+  <li>
+    <details>
+      <summary><code>objToString(obj[,noCache])</code></summary>
+      <ul>
+        <li><b>Description: </b>Converts an object to an array which is a series stringified array of <a href="#part">part</a>s</li>
+        <li><b>Returns: </b>
+<pre>
+String
+</pre>
+        </li>
+        <li><b>Arguments: </b>
+          <ul>
+            <li><b>obj </b><code>Object</code> The object that will be serialised/stringified</li>
+            <li><b>noCache </b><code>Boolean (false)</code> Determines if to rely on the previous state of the object(false) or not(true). It is false at default because it is usually more efficient to only share the differences/changes of the object in question</li>
+          </ul>
+        </li>
+      </ul>
+    </details>
+  </li>
+  <!---->
+  <li>
+    <details>
+      <summary><code>stringToObj(string[,obj[,constraint]])</code></summary>
+      <ul>
+        <li><b>Description: </b>Modifies an object based on the string given, filtered by the constraint given, then returns that object. If no object was given, an empty object would be created and modified with that string</li>
+        <li><b>Returns: </b>
+<pre>
+Object
+</pre>
+        </li>
+        <li><b>Arguments: </b>
+          <ul>
+            <li><b>string </b><code>String</code> Serialised/stringified array of <a href="#part">part</a>s</li>
+            <li><b>obj </b><code>Object</code> The object to modify based on the string filtered by the constraint</li>
+            <li><b>constraint </b><code>Number OR Function</code> If it is a number, 1(for view only), 2(for only adding new keys and not modifying or deleting any), 3(any and all edits) or a a custom function that deals with each <b>part</b></li>
+          </ul>
+        </li>
+      </ul>
+    </details>
+  </li>
+  <!---->
+  <li>
+    <details>
+      <summary><code>sync(filePath[,obj[,coding]])</code></summary>
+      <ul>
+        <li><b>Description: </b>A function that persistently saves a given object upon each change. Note that it will try to modify the given object from what is at the fileName first then write the object's contents to the fileName. If no object is given, it will be exactly what can be built from the contents in filePath or an empty object</li>
+        <li><b>Returns: </b>
+<pre>
+Object
 
-# The AuthToken
-The *authToken* is something(that can be activated from an instance of the `serve` function) that allows other users to `connect` with your object with different levels of permissions.
-<br>eg:
-```js
-myWebject.addToken(1) //returns token of authLevel 1
-//authLevels in general decide the amount of control the client has of your object(the one you share)
+- if syncList already includes filePath, the syncList's object already stored
+one to one relation between a unique object and a unique filePath is how sync function works
+do not worry about "should I desync when finished using sync" because there is a counter acting as the amount of times the function was called with a unique filePath
+
+- else if obj was given
+--  if filePath has webject serialised/stringified content, obj modified by contents of filePath
+--  else, the unmodified obj
+
+- else (obj was NOT given)
+--  if filePath has webject serialised/stringified content, solely the parsed value of filePath contents
+--  else, an empty object {}
+</pre>
+        </li>
+        <li><b>Arguments: </b>
+          <ul>
+            <li><b>filePath </b><code>String</code> The FULL system file path</li>
+            <li><b>obj </b><code>Object</code> The object to be synchronised to the filePath</li>
+            <li><b>coding </b><code>Object</code> Defines a <a href="#coding">custom encoding scheme</a></li>
+          </ul>
+        </li>
+      </ul>
+    </details>
+  </li>
+  <!---->
+  <li>
+    <details>
+      <summary><code>desync(filePath)</code></summary>
+      <ul>
+        <li><b>Description: </b>Terminates the synchronisation of an object to a given filePath (or simply decrements a counter discussed in <b>sync</b>)</li>
+        <li><b>Returns: </b>
+<pre>
+undefined
+</pre>
+        </li>
+        <li><b>Arguments: </b>
+          <ul>
+            <li><b>filePath </b><code>String</code> The FULL system file path</li>
+          </ul>
+        </li>
+      </ul>
+    </details>
+  </li>
+  <!---->
+  <li>
+    <details>
+      <summary><code>partFilter(manditoryPath[,allowEdits])</code></summary>
+      <ul>
+        <li><b>Description: </b>Creates a custom filter function that will only accept an edit from a <a href="#part">part</a> inside a certain manditoryPath</li>
+        <li><b>Returns: </b>
+<pre>
+Function (the filter function)
+</pre>
+        </li>
+        <li><b>Arguments: </b>
+          <ul>
+            <li><b>manditoryPath </b><code>String[]</code> The path in the object in which edits will be accepted (only data inside/under this path gets edited)</li>
+            <li><b>allowAllEdits </b><code>Boolean(false)</code> Everything inside/under the given manditoryPath is treated like the number 2 filter(only new keys, no edits or deletions) WHEN FALSE. When true, all edits inside manditoryPath are allowed (like the number 3 filter)</li>
+          </ul>
+        </li>
+      </ul>
+    </details>
+  </li>
+</ul>
+
+# Structures
+## Events
+Let's look at what is given to `yourReaction` when you call the `addListener` function (which is a method of what is returned after calling the `serve` function)
 ```
-- *authLevel 1*: Users who `connect` with this kind of authToken can only *view* the object that they are connecting to
-- *authLevel 2*: Users who `connect` with this kind of authToken can *view* and *add*, but they cannot *modify*(as in they can add new keys with data but not edit or delete existing ones)
-- *authLevel 3*: Users who `connect` with this kind of authToken can *view*, *add* **AND** *modify* the shared object(lots of power, kinda sus ngl so maybe just make these authTokens **JUST** for yourself if for some reason you wanna go on another process or device and have full control of the object)
-
-However, as for the `serve` function itself, it returns some *utility* tools for managing tokens(for **EACH** call), namely:
-- *authTokens*: A list of all tokens existing in that `serve` instance(can be used to kick people(just closing a socket would trigger the cleanup of that socket))
-<br>*example structure*
-
-```js
 {
-  ...,
-  "webject_dfae":{ //one authToken object
-    authToken:"webject_dfae",
-    authLevel:1,
-    clients:Map[someSocket1=>1,someSocket2=>1],
-    object:theSharedObj,
-    locked:false,
-    string:objToString(theSharedObj)
-  },
-  ...,
+  token: Object, //an authToken's object or null
+  socket: Object, //a websocket client object or null
+  type: String, //a string(either "edit", "connect", or "disconnect")
+  lock: Function, //prevents more connections to an authToken passed in OR this event's token.authToken if called with none given
+  unlock: Function, //allows new connections to an authToken passed in OR this event's token.authToken if called with none given
+  preventDefault: Function //stops passing the event to other listeners after (the listener that calls this will be the last listener to see the event)
 }
 ```
+The `or null` parts with `token` and `socket` only apply to if the event is of _type_ **edit**.<br>
+These would be null when an edit on an object occured on the server side, thus there is no client token and socket related/responsible for the event
 
-# Methods
-~~`serve` is the only module that returns an object with methods~~<br>
-- **addToken**: The *correct* way to create an *authToken* that takes in a parameter *authLevel* or an optional second parameter *object* and returns the *authToken* with that level of authorisation, then finally a third optional paremeter of *specificToken*. If you do use the second parameter, an *that* object would be shared since you can share a different object per token :D
-<br>Needless to say, if you don't use the second parameter, it will default to the object chosen when the *serve* function was called
-<br>The third optional parameter is for setting an *authToken* **manually**, which adds further flexibility to this function
-- **endToken**: The *correct* way to remove an *authToken* that takes in a parameter *authToken* to remove it and close **all** connections that were to that token(yes, it kicks everyone who is connected with that token)
-- **lock**: This takes in the parameter *authToken* and will prevent further connections to that *authToken* while **NOT** removing clients already connected
-- **unlock**: This takes in the parameter *authToken* and enables further connections to that *authToken*(by default when you make a key it's unlocked)
-- **addListener**: This takes in 2 parameters(*event* which is a string and *yourReaction* which is a function). *yourReaction* receives an object with several different properties, including the lock and unlock functions(except you can activate them without an *authToken* and it will apply the lock to the event's *token*)
-<br>*object given to `yourReaction` function when used in `addListener` upon an event dispatch*
-
-```js
+## Token
+The authToken _object_, highly integral to this repository because authTokens configure and define how others connect/sync to your objects.<br>
+Let's look at its structure
+```
 {
-  token, //an authToken object
-  socket, //a websocket object
-  type, //event name(eg: "edit")
-  lock, //function to lock a specified token or the event's authToken
-  unlock, //function to unlock a specified token or the event's authToken
-  preventDefault //function to stop event propogation(no other listeners get called after one listener activtes this)
+  authToken: String,
+  filter: Number OR Function,
+  clients: Map,
+  object: Object,
+  locked: Boolean,
+  dispatch: Function,
+  encoder: Function OR null,
+  decoder: Function OR null
 }
 ```
-<br>*eg*: `let myHandler=(ev)=>ev.lock(); myWebject.addListener("connect",myHandler)` would end up locking each *authToken* upon connection
-<br>There are a total of *THREE* valid values for *event* right now, namely *connect*, *disconnect* and *edit*. See *[eventsTesting.js](https://github.com/Y0ursTruly/webject/blob/main/Illustrations/eventsTesting.js)* and *[lockTesting.js](https://github.com/Y0ursTruly/webject/blob/main/Illustrations/lockTesting.js)* for examples
-- *endListener*: This takes in 2 parameters(*event* which is a string and *yourReaction* which is a function). If *yourReaction* exists in the array of *event*, it will be removed from the list
-<br>*eg*: `myWebject.removeListener("connect",myHandler)`
+This is authToken string, next is a filter which is either 1,2,3 or a function that would filter every **part** of an incoming edit, followed by a Map of websocket connections to this authToken, followed by the object that this authToken is meant to shared, followed by if it's locked, then a dispatch function responsible for this authToken (many authTokens might have the same dispatcher responsible for it), followed by an optional encoder and decoder for custom encoding.
 
-# Updates
-- **heartbeat/ping logic**: Basically, I had a repl server and sometimes I turned off my connection(from my pc) and the server still behaved as if the connection was live.. so I've implemented this logic
-- **new `object` parameter in `connect`**: This allows the user to connect to the remote object BUT with the user's object
+## Part
+What is meant by **part**? `objToString(someObj)` always returns `JSON.stringify(someArray)` where *someArray* is made up of **part**s. Each *part* comes in the format
+```
+the value in ONE index(part) of an objToString array are 1 of the following types:
 
-<br>Well if you're all the way down here, my email is *[paulrytaylor@gmail.com](mailto:paulrytaylor@gmail.com)*
+[path] //delete
+[path,data] //value
+[path,refPath,num] //reference
+[path,data,0,tag] //custom datatype value
+
+- path is array of strings to represent a location
+- data is an instance of a datatype to represent a value
+- refPath is an index to a referred path located in another index(part) or the path array itself
+- num is a number which can be 3 options: 0=not mentioned, 1=mentioned as path, 2=mentioned as reference
+- tag is the [Symbol.toStringTag] property of a value and is used for TypedArray, BigInt, Symbol and undefined(which has no [Symbol.toStringTag] but isn't JSON)
+```
+
+## Coding
+This is an object of two functions: `encode` and `decode`. Each function must be robust since they can receive _and also_ return ONE of two types of data: either **string** or **buffer**. In essence, they must have accomodations for two data types. Only one argument is given, data.
+```
+{
+  function encode(data/*instanceof Buffer or String*/){return an instanceof Buffer or String},
+  function decode(data/*instanceof Buffer or String*/){return an instanceof Buffer or String},
+}
+```
