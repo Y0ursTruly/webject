@@ -60,11 +60,16 @@ const {serve, connect, sync, desync, objToString, stringToObj, partFilter, objVa
       const testObj={a:{b:{c:2}}}, testObjClone={a:{b:{c:2}}}, testObj1={a:{b:{c:2}}}
       objToString(testObj)
       objToString(testObj1)
-      testObj1.a.b.c++; testObj1.d="e";
+      testObj1.a.b.c++;
+      testObj1.d="e";
+      testObj1.a.b.f=testObj1;
+      testObj1.a.b.f.g=2225;
+      const edits=objToString(testObj1)
       stringToObj(edits,testObj,partFilter(["a","b"])) //no edits should've occured
       assert.deepStrictEqual(testObj,testObjClone)
       stringToObj(edits,testObj,partFilter(["a","b"],true)) //only c should've been edited
       assert.strictEqual(testObj.d,undefined)
+      assert.strictEqual(testObj.a.b.f,undefined)
       assert.strictEqual(testObj.a.b.c,3)
     })
   })
@@ -96,7 +101,7 @@ const {serve, connect, sync, desync, objToString, stringToObj, partFilter, objVa
           (err.message||err).split('\n').at(-1),
           "authToken LOCKED: this is a correct key, but it takes no new connections 0_0"
         )
-        //"magic string" source: webject.js line 317
+        //"magic string" source: webject.js line 316
       }
     })
     await t.test("Proof of endListener",async function(){
@@ -117,7 +122,7 @@ const {serve, connect, sync, desync, objToString, stringToObj, partFilter, objVa
           (err.message||err).split('\n').at(-1),
           "closed PURPOSEFULLY: check your location and token parameters, OR you got BOOTED :/"
         )
-        //"magic string" source: webject.js line 319
+        //"magic string" source: webject.js line 318
       }
     })
     await t.test("Ensuring ping logic doesn't disconnect you",async function(){

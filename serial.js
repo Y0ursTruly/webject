@@ -135,7 +135,7 @@
         }
         continue;
       }
-      let Path=[...PATH,key], path=data[1]&&PATH.length>=2? [data[1],key]: Path;
+      let Path=[...PATH,key], path=data[1]<list.length&&PATH.length>=2? [data[1],key]: Path;
       
       let notSame=!same( obj[key],clone[key] ), temp=map.get(item)
       //structure of temp: [path, index, num, clone]
@@ -258,20 +258,28 @@
       if(typeof manditoryPath[i]!=="string")
         throw new TypeError("manditoryPath MUST be an ARRAY of STRINGs");
     if(typeof allowAllEdits!=="boolean") allowAllEdits=Boolean(allowAllEdits);
-    return function(part,obj){
+    return function(part,obj,info){
       if(part[0].length<=manditoryPath.length) return false;
       for(let i=0;i<manditoryPath.length;i++)
         if(manditoryPath[i]!==part[0][i]) return false;
-      try{if(!allowAllEdits) return valueFrom(obj,path[0]),false;}
-      finally{if(part.length!==3) return true;}
+      try{
+        if(!allowAllEdits) return valueFrom(part[0],obj),false;
+        else if(part.length!==3) return true;
+      }
+      catch{if(part.length!==3) return true;}
       
       //if we are still processing, this part is a reference
       //now we must ensure that the reference is also inside manditoryPath
-      if(part[2].length<=manditoryPath.length) return false;
+      const referencePath=info[part[1]][part[2]];
+      if(referencePath.length<=manditoryPath.length) return false;
       for(let i=0;i<manditoryPath.length;i++)
-        if(manditoryPath[i]!==part[2][i]) return false;
-        try{if(!allowAllEdits) return valueFrom(obj,path[0]),false;}
-        finally{return true}
+        if(manditoryPath[i]!==referencePath[i]) return false;
+      console.log({manditoryPath,referencePath})
+      try{
+        if(!allowAllEdits) return valueFrom(part[0],obj),false;
+        return true
+      }
+      catch{return true}
     }
   }
   
