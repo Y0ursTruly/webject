@@ -365,6 +365,15 @@
     return await p
   }
   
+  async function durableRead(filePath){
+    try{return await fs.promises.readFile(filePath+'.json')}
+    catch{return await fs.promises.readFile(filePath+'.tmp')}
+  }
+  async function durableWrite(filePath,data){
+    await fs.promises.writeFile(filePath+'.tmp',data)
+    await fs.promises.writeFile(filePath+'.json',data)
+    await fs.promises.unlink(filePath+'.tmp')
+  }
   const syncList=new Map() //sync list for records of syncing
   //sync object to filePath
   async function sync(filePath,obj,coding){
@@ -386,17 +395,17 @@
     }
     let encode=data=>coding?coding.encoder(data):data, decode=data=>coding?coding.decoder(data):data;
     
-    try{  var object=stringToObj(await decode(fs.readFileSync(filePath)),obj)  }
+    try{  var object=stringToObj(await decode(await durableRead(filePath)),obj)  }
     catch{  var object=obj&&typeof obj==="object"?obj:{}  }
     
-    try{  fs.writeFileSync(filePath,await encode(objToString(object,true)))  }
+    try{  await durableWrite(filePath,await encode(objToString(object,true)))  }
     catch(err){  throw new Error("Using this filePath caused an error ;-;\n~",err)  }
     
     
     async function dispatch(){
       while(token.saving) await new Promise(r=>setTimeout(r,10));
       token.saving=true
-      await fs.promises.writeFile(filePath,await encode(objToString(object,true)))
+      await durableWrite(filePath,await encode(objToString(object,true)))
       token.saving=false
     }
     const token={authToken:"sync",clients:new Map(),count:1,dispatch,object,saving:false}

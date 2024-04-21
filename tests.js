@@ -192,18 +192,18 @@ const {serve, connect, sync, desync, objToString, stringToObj, partFilter, objVa
 
   //fifth set of tests
   await test("5) Usage of 'sync' and 'desync' Functions",async function(t){
-    const filePath=__dirname+slash+"record.json"
+    const filePath=__dirname+slash+"record"
     sync(filePath,mainObj)
     for(let i=0;i<5;i++){
       mainObj.c[0]++;
       await new Promise(r=>setTimeout(r,50))
-      assert.deepStrictEqual(stringToObj(fs.readFileSync(filePath)), mainObj) //file updated
+      assert.deepStrictEqual(stringToObj(fs.readFileSync(filePath+'.json')), mainObj) //file updated
     }
     desync(filePath)
     mainObj.c[0]++;
     await new Promise(r=>setTimeout(r,50))
-    assert.notDeepStrictEqual(stringToObj(fs.readFileSync(filePath)), mainObj) //file not updated
-    fs.unlinkSync(filePath)
+    assert.notDeepStrictEqual(stringToObj(fs.readFileSync(filePath+'.json')), mainObj) //file not updated
+    fs.unlinkSync(filePath+'.json')
   })
 
   //sixth set of tests
@@ -217,14 +217,14 @@ const {serve, connect, sync, desync, objToString, stringToObj, partFilter, objVa
       let result=Buffer.from(data,'base64').toString()
       return result
     }
-    const filePath=__dirname+slash+"record.json"
+    const filePath=__dirname+slash+"record"
     const encodingKey=myWebject.addToken(1,0,0,{encoder,decoder})
     //the 0s for falsish values to invoke their default values instead
     const mySharedObj=await connect(serverLocation,encodingKey,0,0,{encoder,decoder})
     sync(filePath,mySharedObj,{encoder,decoder})
     await new Promise(r=>setTimeout(r,50))
-    assert.strictEqual(await encoder(objToString(mainObj,true)),fs.readFileSync(filePath).toString())
-    fs.unlinkSync(filePath)
+    assert.strictEqual(await encoder(objToString(mainObj,true)),fs.readFileSync(filePath+'.json').toString())
+    fs.unlinkSync(filePath+'.json')
   })
 
   setTimeout(_=>process.exit(0),50)

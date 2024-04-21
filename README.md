@@ -12,7 +12,7 @@ Three ways
 const {serve, connect, sync, desync, objToString, stringToObj, objValueFrom} = require("webject");
 ```
 # Temporary Advisory
-VERY NEARLY ALMOST FINISHED, added a partFilter function after I was "finished" with my renovations, but testing it revealed one dormant bug THAT I MUST FIX before publishing the new, heavily updated version of this package
+VERY NEARLY ALMOST FINISHED, the intention is for `sync` to have the A,C,D in ACID (_Isolation_ in this would always be something the developer must choose to enforce for this) but so far there is only D (durability)
 
 # Modules
 <ul>
@@ -247,7 +247,7 @@ do not worry about "should I desync when finished using sync" because there is a
         </li>
         <li><b>Arguments: </b>
           <ul>
-            <li><b>filePath </b><code>String</code> The FULL system file path</li>
+            <li><b>filePath </b><code>String</code> The FULL system file path (the saved file would be <code>filePath+'.json'</code></li>
             <li><b>obj </b><code>Object</code> The object to be synchronised to the filePath</li>
             <li><b>coding </b><code>Object</code> Defines a <a href="#coding">custom encoding scheme</a></li>
           </ul>
