@@ -9,10 +9,10 @@ Three ways
 - `npm install webject`
 # Importing
 ```
-const {serve, connect, sync, desync, objToString, stringToObj, objValueFrom} = require("webject");
+const {serve, connect, sync, desync, objToString, stringToObj, objValueFrom, setConsistency} = require("webject");
 ```
-# Temporary Advisory
-VERY NEARLY ALMOST FINISHED, the intention is for `sync` to have the A,C,D in ACID (_Isolation_ in this would always be something the developer must choose to enforce for this) but so far there is only D (durability)
+# ADVISORY
+If you (the developer) wish to use this as a database (achieve persistence using the `sync` module), in [ACID](https://www.techtarget.com/searchdatamanagement/definition/ACID), this library only enforces D without any work and A,C,D when utilising a given `setConsistency` module which should be used to declare if an object is safe for saving or not (if a transaction is complete or not). Due to the nature of this library, Isolation must be handled by you, the developer, since this allows objects to be shared/synced among multiple clients at the same time.
 
 # Modules
 <ul>
