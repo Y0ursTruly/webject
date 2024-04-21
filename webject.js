@@ -374,6 +374,14 @@
     await fs.promises.writeFile(filePath+'.json',data)
     await fs.promises.unlink(filePath+'.tmp')
   }
+  const inconsistencyMap=new Map()
+  function consistencyUnsafe(object){
+    return inconsistencyMap.get(object)
+  }
+  function setConsistency(object,isConsistent){
+    if(isConsistent) inconsistencyMap.delete(object);
+    else inconsistencyMap.set(object,true);
+  }
   const syncList=new Map() //sync list for records of syncing
   //sync object to filePath
   async function sync(filePath,obj,coding){
@@ -403,6 +411,7 @@
     
     
     async function dispatch(){
+      if(consistencyUnsafe(object)) return false;
       while(token.saving) await new Promise(r=>setTimeout(r,10));
       token.saving=true
       await durableWrite(filePath,await encode(objToString(object,true)))
@@ -428,7 +437,7 @@
   }
   
   
-  global.webject||={serve, connect, sync, desync, objToString, stringToObj, partFilter, objValueFrom};
+  global.webject||={serve, connect, sync, desync, objToString, stringToObj, partFilter, objValueFrom, setConsistency};
   module.exports=global.webject;
   
   
