@@ -1,18 +1,31 @@
 # Webject
 Share (and sync) Objects Online with the power of websockets. Keys, Values AND References. Webject is short for Web Object and it really is a system for sharing objects on the web. Someone can host an object, then create and configure an authToken, enabling clients to connect to the object with the permissions/constraints defined by the respective authToken it a client connects with. Why Webject? This tool has usage for whenever one wishes to either collaborate on or simply share/sync real time data remotely with ease >:D
 <br>
-- **Please note**: Please ensure that the same version of *webject* is used across the different points/ends of your application that use it
+- **Please note**: To view example usage of the modules this library provides, please refer to the _[tests](https://github.com/Y0ursTruly/webject/blob/main/tests.js)_
+
 # Installation
-Three ways
+Multiple ways
 - *[Download Github Package as ZIP](https://github.com/Y0ursTruly/webject/archive/refs/heads/main.zip)*
-- `git clone https://github.com/Y0ursTruly/webject.git`
-- `npm install webject`
+- _[git cli](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)_: `git clone https://github.com/Y0ursTruly/webject.git`
+- _[npm cli](https://docs.npmjs.com/cli)_: `npm install webject`
+- browser/frontend script tag: `<script src="https://cdn.jsdelivr.net/npm/webject@latest/for_browser.min.js"></script>`
+
 # Importing
 ```
-const {serve, connect, sync, desync, objToString, stringToObj, objValueFrom, setConsistency} = require("webject");
+const {
+  serve, //doesn't exist on browser
+  connect, //is a global variable when browser script is loaded
+  sync, //doesn't exist on browser
+  desync, //doesn't exist on browser
+  objToString, //is a global variable when browser script is loaded
+  stringToObj, //is a global variable when browser script is loaded
+  objValueFrom, //is a global variable when browser script is loaded
+  setConsistency //doesn't exist on browser
+} = require("webject");
 ```
+
 # ADVISORY
-If you (the developer) wish to use this as a database (achieve persistence using the `sync` module), in [ACID](https://www.techtarget.com/searchdatamanagement/definition/ACID), this library only enforces D without any work and A,C,D when utilising a given `setConsistency` module which should be used to declare if an object is safe for saving or not (if a transaction is complete or not). Due to the nature of this library, Isolation must be handled by you, the developer, since this allows objects to be shared/synced among multiple clients at the same time.
+If you (the developer) wish to use this as a database (achieve persistence using the `sync` module), in [ACID](https://www.techtarget.com/searchdatamanagement/definition/ACID), this library only enforces **D** without any work and **A,C,D** when utilising a given `setConsistency` module which should be used to declare if an object is safe for saving or not (if a transaction is complete or not). **Isolation** must be handled by you, the developer, since this library is designed to allow objects to be _shared/synced_ among multiple clients concurrently.
 
 # Modules
 <ul>
@@ -294,10 +307,30 @@ Function (the filter function)
       </ul>
     </details>
   </li>
+  <!---->
+  <li>
+    <details>
+      <summary><code>setConsistency(object[,isConsistent])</code></summary>
+      <ul>
+        <li><b>Description: </b>Declares if an object is safe for saving to disk, which the <code>sync</code> function checks this after each edit before saving file and would only save if consistency is true, however do note that <b>consistency of an object is true by default</b></li>
+        <li><b>Returns: </b>
+<pre>
+undefined
+</pre>
+        </li>
+        <li><b>Arguments: </b>
+          <ul>
+            <li><b>object </b><code>Object</code> An object that you are using <code>sync</code> on and wish to enforce atomicity and consistency on</li>
+            <li><b>isConsistent </b><code>Boolean</code> true means that the <code>sync</code> function can save the object to a file now, false means to not save the object to a file yet</li>
+          </ul>
+        </li>
+      </ul>
+    </details>
+  </li>
 </ul>
 
 # Structures
-## Events
+## Event
 Let's look at what is given to `yourReaction` when you call the `addListener` function (which is a method of what is returned after calling the `serve` function)
 ```
 {

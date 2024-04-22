@@ -1,5 +1,5 @@
 const test=require('node:test'), assert=require('node:assert'), fs=require('node:fs');
-const {serve, connect, sync, desync, objToString, stringToObj, partFilter, objValueFrom}=require('.');
+const {serve, connect, sync, desync, objToString, stringToObj, partFilter, objValueFrom, setConsistency}=require('.');
 
 (async function(){
   let slash=process.platform=="win32"?"\\":"/", serverLocation="ws://localhost:8009"
@@ -191,19 +191,33 @@ const {serve, connect, sync, desync, objToString, stringToObj, partFilter, objVa
   })
 
   //fifth set of tests
-  await test("5) Usage of 'sync' and 'desync' Functions",async function(t){
+  await test("5) Usage of 'sync', 'desync' and 'setConsistency' Functions",async function(t){
     const filePath=__dirname+slash+"record"
-    sync(filePath,mainObj)
-    for(let i=0;i<5;i++){
+    await t.test("Ensuring sync works",async function(){
+      sync(filePath,mainObj)
+      for(let i=0;i<5;i++){
+        mainObj.c[0]++;
+        await new Promise(r=>setTimeout(r,50))
+        assert.deepStrictEqual(stringToObj(fs.readFileSync(filePath+'.json')), mainObj) //file updated
+      }
+    })
+    await t.test("Ensuring consistency works correctly with sync",async function(){
+      mainObj.c[0]++;
+      setConsistency(mainObj,false)
+      await new Promise(r=>setTimeout(r,50))
+      assert.notDeepStrictEqual(stringToObj(fs.readFileSync(filePath+'.json')), mainObj) //consistency false
+      mainObj.c[0]++;
+      setConsistency(mainObj,true)
+      await new Promise(r=>setTimeout(r,50))
+      assert.deepStrictEqual(stringToObj(fs.readFileSync(filePath+'.json')), mainObj) //consistency true
+    })
+    await t.test("Ensuring desync works",async function(){
+      desync(filePath)
       mainObj.c[0]++;
       await new Promise(r=>setTimeout(r,50))
-      assert.deepStrictEqual(stringToObj(fs.readFileSync(filePath+'.json')), mainObj) //file updated
-    }
-    desync(filePath)
-    mainObj.c[0]++;
-    await new Promise(r=>setTimeout(r,50))
-    assert.notDeepStrictEqual(stringToObj(fs.readFileSync(filePath+'.json')), mainObj) //file not updated
-    fs.unlinkSync(filePath+'.json')
+      assert.notDeepStrictEqual(stringToObj(fs.readFileSync(filePath+'.json')), mainObj) //file not updated
+      fs.unlinkSync(filePath+'.json')
+    })
   })
 
   //sixth set of tests

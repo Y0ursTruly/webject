@@ -117,7 +117,14 @@
     for(let i=0;i<KEYS.length;i++){
       let key=KEYS[i], item=obj[key]
       if(includes(clone,key)&&item===clone[key]) continue;
-      let Path=[...PATH,key], path=data[1]&&PATH.length>=2? [data[1],key]: Path;
+      if(typeof item==="function"){
+        if(includes(clone,key)){
+          delete clone[key]
+          list.push([ [...PATH,key] ]) //delete BECAUSE datatype is function
+        }
+        continue;
+      }
+      let Path=[...PATH,key], path=data[1]<list.length&&PATH.length>=2? [data[1],key]: Path;
       
       let notSame=!same( obj[key],clone[key] ), temp=map.get(item)
       //structure of temp: [path, index, num, clone]
@@ -182,7 +189,7 @@
     __proto__:null,
     1: function(/*part,obj,info*/){ return false }, //no edits allowed
     2: function(part,obj){ //only addition(no deletion or modification)
-      if(part.length!==2 && part.length!==4) return false; //no deleting or re-referencing
+      if(part.length===1) return false; //no deleting
       try{return valueFrom(part[0],obj),false} //returns false(no overwriting)
       catch{return true}
     },
@@ -219,7 +226,7 @@
       }
       else if(part.length===2){ //write
         let parent=valueFrom( path,obj,1 )
-        if(!same( parent[last],part[1] )) parent[last]=part[1];
+        if(!same( parent[last],part[1] )||typeof part[1]==="string") parent[last]=part[1];
         else Object.assign(parent[last],part[1]);
       }
       else if(part.length===3){ //refer
@@ -233,15 +240,47 @@
     }
     return obj
   }
+
+  function partFilter(manditoryPath,allowAllEdits=false){
+    if(!Array.isArray(manditoryPath)) manditoryPath=[manditoryPath];
+    for(let i=0;i<manditoryPath.length;i++)
+      if(typeof manditoryPath[i]!=="string")
+        throw new TypeError("manditoryPath MUST be an ARRAY of STRINGs");
+    if(typeof allowAllEdits!=="boolean") allowAllEdits=Boolean(allowAllEdits);
+    return function(part,obj,info){
+      if(part[0].length<=manditoryPath.length) return false;
+      for(let i=0;i<manditoryPath.length;i++)
+        if(manditoryPath[i]!==part[0][i]) return false;
+      try{
+        if(!allowAllEdits) return valueFrom(part[0],obj),false;
+        else if(part.length!==3) return true;
+      }
+      catch{if(part.length!==3) return true;}
+      
+      //if we are still processing, this part is a reference
+      //now we must ensure that the reference is also inside manditoryPath
+      const referencePath=info[part[1]][part[2]];
+      if(referencePath.length<=manditoryPath.length) return false;
+      for(let i=0;i<manditoryPath.length;i++)
+        if(manditoryPath[i]!==referencePath[i]) return false;
+      console.log({manditoryPath,referencePath})
+      try{
+        if(!allowAllEdits) return valueFrom(part[0],obj),false;
+        return true
+      }
+      catch{return true}
+    }
+  }
   
   window.objToString=objToString
   window.stringToObj=stringToObj
   window.objValueFrom=valueFrom
+  window.partFilter=partFilter
   
   
   
-  })();
-  (()=>{
+})();
+(()=>{
   
   
   
@@ -345,5 +384,4 @@
   window.connect=connect
   
   
-  })()
-  
+})()
