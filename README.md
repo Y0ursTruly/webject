@@ -383,7 +383,7 @@ the value in ONE index(part) of an objToString array are 1 of the following type
 This is an object of two functions: `encode` and `decode`. Each function must be robust since they can receive _and also_ return ONE of two types of data: either **string** or **buffer**. In essence, they must have accomodations for two data types. Only one argument is given, data.
 ```
 {
-  function encode(data/*instanceof Buffer or String*/){return an instanceof Buffer or String},
-  function decode(data/*instanceof Buffer or String*/){return an instanceof Buffer or String},
+  function encoder(data/*instanceof Buffer or String*/){return an instanceof Buffer or String},
+  function decoder(data/*instanceof Buffer or String*/){return an instanceof Buffer or String},
 }
 ```
