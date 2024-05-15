@@ -245,7 +245,7 @@
           }
           else if(!authTokens[msg])  return client.close(1000); //if you client doesn't have a valid token, they get closed
           
-          if(authTokens[msg].decoder && !encodingHandled)  return client.closed(1002); //this token uses encoding and it wasn't handled
+          if(authTokens[msg].decoder && !encodingHandled)  return client.close(1002); //this token uses encoding and it wasn't handled
           if(authTokens[msg].locked)  return client.close(1001); //if authToken is locked, no more new connections
           client.send("PING") //starts the back and forth pinging between server and client
           token=authTokens[msg]
