@@ -290,9 +290,10 @@
   }
   
   //connect to an object
-  async function connect(location,authToken,onFail,obj,coding){ //receive an object(asynchronous to wait for connection with server)
+  async function connect(location,authToken,obj,coding,onFail=true){ //receive an object(asynchronous to wait for connection with server)
     if(typeof location!=="string"||typeof authToken!=="string")
       throw new Error("BOTH location AND authToken MUST be STRINGS >:|");
+    if(onFail===true) onFail=_=>connect(location,authToken,obj,coding,onFail);
     if(typeof onFail!=="function"&&onFail)
       throw new Error("If you choose the optional parameter onFail, it must be a function >:|");
     if(coding&&typeof coding==="object"?typeof coding.encoder!=="function"||typeof coding.decoder!=="function":false){
@@ -300,11 +301,11 @@
     }
     let toReturn=null, toReject=null, s=null, ping=null, alreadyClosed=false
     let server=await new webSocket(location)
+    let p=new Promise((r,j)=> (toReturn=r, toReject=j) )
     server.onerror=(err)=>{
       console.error("Attempting to connect to a websocket using the location parameter produced the following error :/\n~",err.message)
-      if(onFail){onFail()} //if connecting fails, function is called(if given)
+      if(onFail) toReturn? onFail().then(toReturn): onFail(); //if connecting fails, function is called(if given)
     }
-    let p=new Promise((r,j)=> (toReturn=r, toReject=j) )
     function disconnectHandle(event,name){
       let code=event, disconnectReason=null
       if(isNaN(code))  code=event.code;
@@ -323,7 +324,7 @@
       /*if the promise is NOT fulfiled, reject.. else, warn*/
       
       (clearInterval(s), clearInterval(ping));
-      if(onFail)  onFail();
+      if(onFail) toReturn? onFail().then(toReturn): onFail();
     }
     server.on('open',async()=>{
       server.send(JSON.stringify(!coding?authToken:[

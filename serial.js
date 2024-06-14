@@ -176,7 +176,7 @@
   
   
   function objToString(obj,noCache){
-    if(Array.isArray(obj) || typeof obj!=="object")
+    if(Array.isArray(obj) || typeof obj!=="object" || obj===null)
       throw new TypeError("root element of data MUST be an OBJECT");
     if(noCache)
       var clone=casingOf(obj,true);
@@ -221,7 +221,7 @@
     let allowed=typeof constraint==="function"?constraint:constraints[constraint];
     
     var info=parse(typeof string==="string"?string:ab2str(string));
-    if(typeof obj!=="object"){
+    if(typeof obj!=="object"||obj===null){
       if(info[0].length===2) obj=casingOf(info[0][1]);
       else obj=nonjson[info[0][3]](info[0][1]);
     }

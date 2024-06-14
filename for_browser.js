@@ -165,7 +165,7 @@
   
   
   function objToString(obj,noCache){
-    if(Array.isArray(obj) || typeof obj!=="object")
+    if(Array.isArray(obj) || typeof obj!=="object" || obj===null)
       throw new TypeError("root element of data MUST be an OBJECT");
     if(noCache)
       var clone=casingOf(obj,true);
@@ -210,7 +210,7 @@
     let allowed=typeof constraint==="function"?constraint:constraints[constraint];
     
     var info=parse(typeof string==="string"?string:ab2str(string));
-    if(typeof obj!=="object"){
+    if(typeof obj!=="object"||obj===null){
       if(info[0].length===2) obj=casingOf(info[0][1]);
       else obj=nonjson[info[0][3]](info[0][1]);
     }
@@ -288,7 +288,7 @@
   webSocket.prototype.on=webSocket.prototype.addEventListener
   
   
-  let randList={__proto__:null} //this block here is for recording random UNIQUE keys
+  let randList=new Map() //this block here is for recording random UNIQUE keys
   let random =_=> crypto.getRandomValues(new Uint32Array(1))[0];
   let range =(max,min)=> (random()%(max-min))+min; //numeric range
   var arr='abcdefgjiklmnopqrstuvwxyz-_0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ :;.,\\/"\'?!(){}[]@<>=+*#$&`|~^%'.split('')
@@ -298,16 +298,17 @@
       var str="", length=range(2*n,n)
       for(let i=0;i<length;i++) str+=arr[range(arr.length-1,0)];
       str=defaultChar+str;
-    }while(randList[str]);
-    randList[str]=true //so that this key won't repeat
+    }while(randList.has(str));
+    randList.set(str,1); //so that this key won't repeat
     return str;
   }
   
   
   //connect to an object
-  async function connect(location,authToken,onFail,obj,coding){ //receive an object(asynchronous to wait for connection with server)
+  async function connect(location,authToken,obj,coding,onFail=true){ //receive an object(asynchronous to wait for connection with server)
     if(typeof location!=="string"||typeof authToken!=="string")
       throw new Error("BOTH location AND authToken MUST be STRINGS >:|");
+    if(onFail===true) onFail=_=>connect(location,authToken,obj,coding,onFail);
     if(typeof onFail!=="function"&&onFail)
       throw new Error("If you choose the optional parameter onFail, it must be a function >:|");
     if(coding&&typeof coding==="object"?typeof coding.encoder!=="function"||typeof coding.decoder!=="function":false){
@@ -315,11 +316,11 @@
     }
     let toReturn=null, toReject=null, s=null, ping=null, alreadyClosed=false
     let server=await new webSocket(location)
+    let p=new Promise((r,j)=> (toReturn=r, toReject=j) )
     server.onerror=(err)=>{
       console.error("Attempting to connect to a websocket using the location parameter produced the following error :/\n~",err.message)
-      if(onFail){onFail()} //if connecting fails, function is called(if given)
+      if(onFail) toReturn? onFail().then(toReturn): onFail(); //if connecting fails, function is called(if given)
     }
-    let p=new Promise((r,j)=> (toReturn=r, toReject=j) )
     function disconnectHandle(event,name){
       let code=event, disconnectReason=null
       if(isNaN(code))  code=event.code;
@@ -338,7 +339,7 @@
       /*if the promise is NOT fulfiled, reject.. else, warn*/
       
       (clearInterval(s), clearInterval(ping));
-      if(onFail)  onFail();
+      if(onFail) toReturn? onFail().then(toReturn): onFail();
     }
     server.on('open',async()=>{
       server.send(JSON.stringify(!coding?authToken:[

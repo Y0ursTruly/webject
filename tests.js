@@ -2,6 +2,8 @@ const test=require('node:test'), assert=require('node:assert'), fs=require('node
 const {serve, connect, sync, desync, objToString, stringToObj, partFilter, objValueFrom, setConsistency}=require('.');
 
 (async function(){
+  //you would notice a lot of ",null,null,false" in each "connect"
+  //this is to set "onFail" to false, to disable automatic reconnecting
   let slash=process.platform=="win32"?"\\":"/", serverLocation="ws://localhost:8009"
   let log=(text)=>console.log('\x1b[1m\x1b[33m'+text+'\x1b[0m')
   const mainObj={a:{a1:1,a2:{a3:0}},b:{b1:2},c:new Uint8Array([3,4]),undefined};
@@ -13,9 +15,9 @@ const {serve, connect, sync, desync, objToString, stringToObj, partFilter, objVa
   let viewKey=myWebject.addToken(1), viewKey2=myWebject.addToken(1,mainObj2)
   let manualToken=myWebject.addToken(1,mainObj2,"manual_token")
 
-  const sharedObj=await connect(serverLocation,viewKey)
-  const sharedObj1=await connect(serverLocation,viewKey)
-  const sharedObj2=await connect(serverLocation,viewKey2)
+  const sharedObj=await connect(serverLocation,viewKey,null,null,false)
+  const sharedObj1=await connect(serverLocation,viewKey,null,null,false)
+  const sharedObj2=await connect(serverLocation,viewKey2,null,null,false)
   async function sharedObjectsEqual(){
     await new Promise(ok=>setTimeout(ok,50)) //by now change should be implemented
     for(let i=0;i<arguments.length;i++)
@@ -85,15 +87,15 @@ const {serve, connect, sync, desync, objToString, stringToObj, partFilter, objVa
     await t.test("Manual authToken connection",async function(){
       let resolve=null, temp=new Promise(r=>resolve=r), resolver=ev=>resolve(ev.token.authToken);
       myWebject.addListener("connect",resolver)
-      assert.deepStrictEqual(await connect(serverLocation,manualToken),sharedObj2)
+      assert.deepStrictEqual(await connect(serverLocation,manualToken,null,null,false),sharedObj2)
       assert.strictEqual(await temp,manualToken)
       myWebject.endListener("connect",resolver)
     })
     await t.test("Locking and unlocking",async function(){
       myWebject.addListener("connect",lockListener)
-      assert.deepStrictEqual(await connect(serverLocation,manualToken),sharedObj2)
+      assert.deepStrictEqual(await connect(serverLocation,manualToken,null,null,false),sharedObj2)
       try{
-        await connect(serverLocation,manualToken)
+        await connect(serverLocation,manualToken,null,null,false)
         throw new Error("Connection did not throw; locking failed")
       }
       catch(err){
@@ -107,14 +109,14 @@ const {serve, connect, sync, desync, objToString, stringToObj, partFilter, objVa
     await t.test("Proof of endListener",async function(){
       let currentCount=count
       myWebject.endListener("connect",lockListener) //count changes every connection
-      assert.deepStrictEqual(await connect(serverLocation,viewKey),mainObj) //but it won't change
-      assert.deepStrictEqual(await connect(serverLocation,viewKey),mainObj) //didn't throw locked error
+      assert.deepStrictEqual(await connect(serverLocation,viewKey,null,null,false),mainObj) //but it won't change
+      assert.deepStrictEqual(await connect(serverLocation,viewKey,null,null,false),mainObj) //didn't throw locked error
       assert.strictEqual(currentCount,count) //no change since listener was already ended
     })
     await t.test("Ensuring endToken works",async function(){
       myWebject.endToken(manualToken)
       try{
-        await connect(serverLocation,manualToken)
+        await connect(serverLocation,manualToken,null,null,false)
         throw new Error("Connection did not throw; endToken failed")
       }
       catch(err){
@@ -132,8 +134,8 @@ const {serve, connect, sync, desync, objToString, stringToObj, partFilter, objVa
       //this test is long and arduous and the automated check stops on it even though it will pass
     })*/
     await t.test("authLevel 2 and 3 tokens",async function(){
-      let temp2=await connect(serverLocation,lvl2Key) //can only insert new items
-      let temp3=await connect(serverLocation,lvl3Key) //can delete, modify, insert new items
+      let temp2=await connect(serverLocation,lvl2Key,null,null,false) //can only insert new items
+      let temp3=await connect(serverLocation,lvl3Key,null,null,false) //can delete, modify, insert new items
       delete temp3.newkeyy;
       await sharedObjectsEqual(sharedObj,sharedObj1,temp3)
       temp2.newkeyy=4;
@@ -160,7 +162,7 @@ const {serve, connect, sync, desync, objToString, stringToObj, partFilter, objVa
       }
       myWebject.addListener("edit",editHandler)
       myWebject.addListener("disconnect",resolver)
-      let temp3=await connect(serverLocation,lvl3Key) //can delete, modify, insert new items
+      let temp3=await connect(serverLocation,lvl3Key,null,null,false) //can delete, modify, insert new items
       temp3.newKey=2 //an edit
       assert.strictEqual(await temp,lvl3Key)
       temp3.newKey++ //second edit where temp3 is already disconnected
@@ -182,7 +184,7 @@ const {serve, connect, sync, desync, objToString, stringToObj, partFilter, objVa
     async function loop(){
       if(--count<1) resolve(); //stop execution
       await new Promise(r=>setTimeout(r,300)) //so it doesn't try to re-connect instantly
-      await connect(serverLocation,lvl3Key,loop,mySharedObj)
+      return await connect(serverLocation,lvl3Key,mySharedObj,null,loop)
       //remember that the default port it tries to put the websocket on is 8009 when you don't give it a server
     }
     loop()
@@ -235,7 +237,7 @@ const {serve, connect, sync, desync, objToString, stringToObj, partFilter, objVa
     const filePath=__dirname+slash+"record"
     const encodingKey=myWebject.addToken(1,0,0,{encoder,decoder})
     //the 0s for falsish values to invoke their default values instead
-    const mySharedObj=await connect(serverLocation,encodingKey,0,0,{encoder,decoder})
+    const mySharedObj=await connect(serverLocation,encodingKey,null,{encoder,decoder},false)
     sync(filePath,mySharedObj,{encoder,decoder})
     await new Promise(r=>setTimeout(r,50))
     assert.strictEqual(await encoder(objToString(mainObj,true)),fs.readFileSync(filePath+'.json').toString())
