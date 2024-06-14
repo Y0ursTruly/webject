@@ -38,7 +38,7 @@ If you (the developer) wish to use this as a database (achieve persistence using
         <details>
           <summary><u><code>myWebject Instance</code></u></summary>
           <ul>
-            <li><code>authTokens</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map">Map</a></li>
+            <li><code>authTokens</code> Object</li>
             <li>
               <details>
                 <summary><code>addListener(event,yourReaction)</code></summary>
