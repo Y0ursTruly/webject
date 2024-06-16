@@ -14,7 +14,7 @@
   const {objToString,stringToObj,partFilter,objValueFrom}=require(path.join(__dirname,'serial.js'))
   const crypto=require('node:crypto'), cmpStr=objToString({})
   
-  let randList={__proto__:null} //this block here is for recording random UNIQUE keys
+  let randList=new Map() //this block here is for recording random UNIQUE keys
   let map=new WeakMap() //the map is for only having 1 string AND interval per object
   let random =_=> (crypto.webcrypto||crypto).getRandomValues(new Uint32Array(1))[0];
   let range =(max,min)=> (random()%(max-min))+min; //numeric range
@@ -26,8 +26,8 @@
       var str="", length=range(2*n,n)
       for(let i=0;i<length;i++) str+=arr[range(arr.length-1,0)];
       str=defaultChar+str;
-    }while(randList[str]);
-    randList[str]=1; //so that this key won't repeat
+    }while(randList.has(str));
+    randList.set(str,1); //so that this key won't repeat
     return str;
   }
   function dispatchEdit(myMap,sender=null){
@@ -93,7 +93,7 @@
       try{var ws=new webSocket.Server({port:8009})}
       catch{throw new Error("UNABLE TO SERVE >:{")}
     }
-    var authTokens={__proto__:null}, levels={1:1,2:1,3:1,__proto__:null}, encodingStorage={__proto__:null}
+    var authTokens=new Map(), levels={1:1,2:1,3:1,__proto__:null}, encodingStorage={__proto__:null}
     
     /*------------utility functions begin------------*/
     function addToken(filter,object,specificToken,coding){ //authToken adder
@@ -106,16 +106,16 @@
         if(specificToken.length<8)
           throw new RangeError("The specificToken MUST be AT LEAST 8 characters long");
       }
-      if(authTokens[specificToken]||randList[specificToken])
+      if(authTokens.get(specificToken)||randList.get(specificToken))
         throw new TypeError("If specificToken parameter is used, it MUST be a UNIQUE token ;-;");
       if(coding  &&  (typeof coding==="object"?typeof coding.encoder!=="function"||typeof coding.decoder!=="function":false)){
         throw new TypeError("If coding parameter is used, it MUST be an object with both 'encoder' and 'decoder' functions")
       }
       if(typeof specificToken==="string"){var authToken=specificToken} //specificToken chosen as authToken
       else{var authToken=randomChar(8)} //random token generation(by default)
-      randList[authToken] ||= 1;
+      randList.set(authToken,1);
       
-      authTokens[authToken]=createToken(authToken,filter,object,dispatch,coding) //authLevel
+      authTokens.set(authToken, createToken(authToken,filter,object,dispatch,coding)) //authLevel
       return authToken
     }
     function endToken(authToken){ //authToken remover
@@ -124,16 +124,16 @@
       if(authToken.length<8)
         throw new RangeError("The authToken MUST be AT LEAST 8 characters long");
       try{
-        authTokens[authToken].clients.forEach((_,a)=>a.close(1000))
-        map.get( authTokens[authToken].object ).tokens.delete( authTokens[authToken] )
-        delete randList[authToken]
-        return delete authTokens[authToken]
+        authTokens.get(authToken).clients.forEach((_,a)=>a.close(1000))
+        map.get( authTokens.get(authToken).object ).tokens.delete( authTokens.get(authToken) )
+        randList.delete(authToken)
+        return authTokens.delete(authToken)
       }
       catch{throw new Error("INVALID TOKEN(as in it doesn't exist) :/")}
     }
     function lock(authToken){
       if(authToken){
-        try{authTokens[authToken].locked=true}
+        try{authTokens.get(authToken).locked=true}
         catch{throw new Error("PLEASE give a VALID authToken(given token doesn't exist) 0_0")}
       }
       else{
@@ -144,7 +144,7 @@
     }
     function unlock(authToken){
       if(authToken){
-        try{authTokens[authToken].locked=false}
+        try{authTokens.get(authToken).locked=false}
         catch{throw new Error("PLEASE give a VALID authToken(given token doesn't exist) 0_0")}
       }
       else{
@@ -230,7 +230,7 @@
           try{msg=JSON.parse(msg)}
           catch{return client.close(1000)}
           if(typeof msg==="object"){ //handle for if it has encoding
-            try{var {decoder}=authTokens[msg[0]], parsed=JSON.parse(await decoder(msg[1]))}
+            try{var {decoder}=authTokens.get(msg[0]), parsed=JSON.parse(await decoder(msg[1]))}
             catch{return client.close(1002)}
             
             if(Date.now()-parsed[1]>1e3) return client.close(1002); //old encoding authentication
@@ -243,12 +243,12 @@
             encodingHandled=true
             msg=msg[0]
           }
-          else if(!authTokens[msg])  return client.close(1000); //if you client doesn't have a valid token, they get closed
+          else if(!authTokens.get(msg))  return client.close(1000); //if you client doesn't have a valid token, they get closed
           
-          if(authTokens[msg].decoder && !encodingHandled)  return client.close(1002); //this token uses encoding and it wasn't handled
-          if(authTokens[msg].locked)  return client.close(1001); //if authToken is locked, no more new connections
+          if(authTokens.get(msg).decoder && !encodingHandled)  return client.close(1002); //this token uses encoding and it wasn't handled
+          if(authTokens.get(msg).locked)  return client.close(1001); //if authToken is locked, no more new connections
           client.send("PING") //starts the back and forth pinging between server and client
-          token=authTokens[msg]
+          token=authTokens.get(msg)
           
           if(!token.encoder) client.send(objToString(token.object,true));
           else client.send( await token.encoder(objToString(token.object,true)) );
@@ -290,9 +290,10 @@
   }
   
   //connect to an object
-  async function connect(location,authToken,onFail,obj,coding){ //receive an object(asynchronous to wait for connection with server)
+  async function connect(location,authToken,obj,coding,onFail=true){ //receive an object(asynchronous to wait for connection with server)
     if(typeof location!=="string"||typeof authToken!=="string")
       throw new Error("BOTH location AND authToken MUST be STRINGS >:|");
+    if(onFail===true) onFail=_=>connect(location,authToken,obj,coding,onFail);
     if(typeof onFail!=="function"&&onFail)
       throw new Error("If you choose the optional parameter onFail, it must be a function >:|");
     if(coding&&typeof coding==="object"?typeof coding.encoder!=="function"||typeof coding.decoder!=="function":false){
@@ -300,11 +301,11 @@
     }
     let toReturn=null, toReject=null, s=null, ping=null, alreadyClosed=false
     let server=await new webSocket(location)
+    let p=new Promise((r,j)=> (toReturn=r, toReject=j) )
     server.onerror=(err)=>{
       console.error("Attempting to connect to a websocket using the location parameter produced the following error :/\n~",err.message)
-      if(onFail){onFail()} //if connecting fails, function is called(if given)
+      if(onFail) toReturn? onFail().then(toReturn): onFail(); //if connecting fails, function is called(if given)
     }
-    let p=new Promise((r,j)=> (toReturn=r, toReject=j) )
     function disconnectHandle(event,name){
       let code=event, disconnectReason=null
       if(isNaN(code))  code=event.code;
@@ -323,7 +324,7 @@
       /*if the promise is NOT fulfiled, reject.. else, warn*/
       
       (clearInterval(s), clearInterval(ping));
-      if(onFail)  onFail();
+      if(onFail) toReturn? onFail().then(toReturn): onFail();
     }
     server.on('open',async()=>{
       server.send(JSON.stringify(!coding?authToken:[

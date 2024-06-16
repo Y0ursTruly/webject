@@ -1,7 +1,9 @@
 # Webject
 Share (and sync) Objects Online with the power of websockets. Keys, Values AND References. Webject is short for Web Object and it really is a system for sharing objects on the web. Someone can host an object, then create and configure an authToken, enabling clients to connect to the object with the permissions/constraints defined by the respective authToken it a client connects with. Why Webject? This tool has usage for whenever one wishes to either collaborate on or simply share/sync real time data remotely with ease >:D
 <br>
-- **Please note**: To view example usage of the modules this library provides, please refer to the _[tests](https://github.com/Y0ursTruly/webject/blob/main/tests.js)_
+**Please note**:
+- To view example usage of the modules this library provides, please refer to the _[tests](https://github.com/Y0ursTruly/webject/blob/main/tests.js)_
+- Version 1.4 includes breaking changes relative to every version below in terms of the arguments order and slightly the logic in the `connect` module and the change from serve(...).authTokens from an Object to a Map
 
 # Installation
 Multiple ways
@@ -38,7 +40,7 @@ If you (the developer) wish to use this as a database (achieve persistence using
         <details>
           <summary><u><code>myWebject Instance</code></u></summary>
           <ul>
-            <li><code>authTokens</code> Object</li>
+            <li><code>authTokens</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map">Map</a></li>
             <li>
               <details>
                 <summary><code>addListener(event,yourReaction)</code></summary>
@@ -174,7 +176,7 @@ Boolean (true)
   </li>
   <li>
     <details>
-      <summary><code>connect(location,authToken[,onFail[,obj[,coding]]])</code></summary>
+      <summary><code>connect(location,authToken[,obj[,coding[,onFail]]])</code></summary>
       <ul>
         <li><b>Description: </b>An asynchronous function that connects to and when resolved, returns an object that is hosted on a websocket with a specified authToken</li>
         <li><b>Returns: </b>
@@ -186,9 +188,9 @@ A promise that when resolved, returns an object that is hosted on a websocket wi
           <ul>
             <li><b>location </b><code>String (ws or wss protocol)</code> The remote destination's WebSocket URL for the object</li>
             <li><b>authToken </b><code>String</code> The remote destination's <a href="#token">authToken</a> for the object</li>
-            <li><b>onFail </b><code>function</code> This is called when disconnected from the websocket (whether the initial connect fails or some time after, the connection was cut)</li>
             <li><b>obj </b><code>Object</code> A local, given, custom object that will be modified by the contents of the server's object</li>
             <li><b>coding </b><code>Object</code> Defines <a href="#coding">custom encoding scheme</a>; used for when the server has the same custom encoding scheme and thus the user would understand the server</li>
+            <li><b>onFail </b><code>function (true by default)</code> This is called when disconnected from the websocket (whether the initial connect fails or some time after, the connection was cut) typically used for reconnection. It is <code>true</code> by default which means it will be a reconnection function by default. If you put your own function in, it should return a connect promise to simulate reconnection, however set it as <code>false</code> to disable automatic reconnection</li>
           </ul>
         </li>
       </ul>
