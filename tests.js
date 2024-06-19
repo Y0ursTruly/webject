@@ -227,12 +227,12 @@ const {serve, connect, sync, desync, objToString, stringToObj, partFilter, objVa
   await test("6) Usage of Encoding {encoder,decoder}",async function(t){
     //these following functions r async just to make sure the encoding functions are awaited on
     async function encoder(data){
-      let result=Buffer.from(data,'binary').toString('base64')
-      return result
+      await new Promise(r=>setTimeout(r,2))
+      return btoa(data)
     }
     async function decoder(data){
-      let result=Buffer.from(data,'base64').toString()
-      return result
+      await new Promise(r=>setTimeout(r,2))
+      return atob(data)
     }
     const filePath=__dirname+slash+"record"
     const encodingKey=myWebject.addToken(1,0,0,{encoder,decoder})

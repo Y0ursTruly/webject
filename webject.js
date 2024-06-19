@@ -344,8 +344,7 @@
           server.send(coding?(await (coding.encoder(toSend))):toSend);
       }
       server.on('message',async(msg)=>{
-        if(typeof msg==="object")  msg=msg.data; //this solves browser issues
-        if(msg==="PING"){ //ping received(sending own ping)
+        if(msg=="PING"){ //ping received(sending own ping).. ALSO, not strict equal because msg is a Buffer not a String
           setTimeout(()=>server.send("PING"),2500)
           return lastPing=Number(new Date())
         }
