@@ -211,7 +211,7 @@
       
       client.on('message',async(msg)=>{
         //heartbeat handling start
-        if(msg==="PING"&&clientMsgCount===1){
+        if(msg=="PING"&&clientMsgCount===1){
           //ping received with a socket that has SUCCESSFULLY CONNECTED
           //now I am sending own ping
           if(new Date()-lastPing<2500) return client.close(1000); //why are you pinging early? spammer?
