@@ -131,7 +131,6 @@ const {serve, connect, sync, desync, objToString, stringToObj, partFilter, objVa
       await new Promise(r=>setTimeout(r,5001))
       mainObj.newkeyy=3;
       await sharedObjectsEqual(sharedObj,sharedObj1)
-      //this test is long and arduous and the automated check stops on it even though it will pass
     })
     await t.test("authLevel 2 and 3 tokens",async function(){
       let temp2=await connect(serverLocation,lvl2Key,null,null,false) //can only insert new items
