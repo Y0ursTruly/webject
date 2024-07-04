@@ -224,7 +224,7 @@
         if(clientMsgCount===0){ //first message is handshake
           clearTimeout(afk) //first message means it is not inactive
           ping=setInterval(()=>{
-            if(new Date()-lastPing>4000)  closeClient(null,true);
+            if(client.readyState!==client.OPEN)  closeClient(null,true);
           },1000)
           let encodingHandled=false
           try{msg=JSON.parse(msg)}
