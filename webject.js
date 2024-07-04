@@ -192,13 +192,12 @@
     
     /*------------websocket block begin------------*/
     ws.on('connection',(client)=>{
-      let close=client.close.bind(client), ping=null, lastPing=Number(new Date()), alreadyClosed=false
+      let close=client.close.bind(client), alreadyClosed=false
       let clientMsgCount=0, token=null, dispatchClientEdit=(msg)=>map.get(token.object).sendEdit(msg,client)
       
       function closeClient(n=1000,now){ //to ensure socket cleanup
         if(alreadyClosed){return null} //don't repeat close if already closed
         alreadyClosed=true
-        clearInterval(ping) //clearing this interval
         if(token){
           token.clients.delete(client)
           dispatch("disconnect",token,client)
@@ -210,22 +209,9 @@
       let afk=setTimeout(()=>{  closeClient(null,true)  },2000)
       
       client.on('message',async(msg)=>{
-        //heartbeat handling start
-        if(msg=="PING"&&clientMsgCount===1){
-          //ping received with a socket that has SUCCESSFULLY CONNECTED
-          //now I am sending own ping
-          if(new Date()-lastPing<2500) return client.close(1000); //why are you pinging early? spammer?
-          client.send("PING");
-          return lastPing=Number(new Date())
-        }
-        //heartbeat handling end
-        
         //client handshake start
         if(clientMsgCount===0){ //first message is handshake
           clearTimeout(afk) //first message means it is not inactive
-          ping=setInterval(()=>{
-            if(client.readyState!==client.OPEN)  closeClient(null,true);
-          },1000)
           let encodingHandled=false
           try{msg=JSON.parse(msg)}
           catch{return client.close(1000)}
@@ -247,7 +233,6 @@
           
           if(authTokens.get(msg).decoder && !encodingHandled)  return client.close(1002); //this token uses encoding and it wasn't handled
           if(authTokens.get(msg).locked)  return client.close(1001); //if authToken is locked, no more new connections
-          client.send("PING") //starts the back and forth pinging between server and client
           token=authTokens.get(msg)
           
           if(!token.encoder) client.send(objToString(token.object,true));
@@ -299,7 +284,7 @@
     if(coding&&typeof coding==="object"?typeof coding.encoder!=="function"||typeof coding.decoder!=="function":false){
       throw new TypeError("If coding parameter is used, it MUST be an object with both 'encoder' and 'decoder' functions");
     }
-    let toReturn=null, toReject=null, s=null, ping=null, alreadyClosed=false
+    let toReturn=null, toReject=null, s=null, alreadyClosed=false
     let server=await new webSocket(location)
     let p=new Promise((r,j)=> (toReturn=r, toReject=j) )
     server.onerror=(err)=>{
@@ -307,6 +292,7 @@
       if(onFail) toReturn? onFail().then(toReturn): onFail(); //if connecting fails, function is called(if given)
     }
     function disconnectHandle(event,name){
+      if(alreadyClosed) return null;
       let code=event, disconnectReason=null
       if(isNaN(code))  code=event.code;
       if(code==1006)
@@ -323,7 +309,7 @@
       else  console.error(errorMessage);
       /*if the promise is NOT fulfiled, reject.. else, warn*/
       
-      (clearInterval(s), clearInterval(ping));
+      clearInterval(s);
       if(onFail) toReturn? onFail().then(toReturn): onFail();
     }
     server.on('open',async()=>{
@@ -331,23 +317,13 @@
         authToken,
         await coding.encoder( JSON.stringify([randomChar(32,""),Date.now()]) )
       ]))
-      let firstMsg=false, lastPing=Number(new Date())
-      ping=setInterval(()=>{
-        if(new Date()-lastPing>4000){
-          alreadyClosed=true //the close event gets called after so I want to prevent 2 events for 1 disconnection
-          disconnectHandle(1006,"Connection Broken")
-        }
-      },1000)
+      let firstMsg=false
       async function handleObj(){ //sends object data to server
         let toSend=objToString(obj);
         if(toSend!==cmpStr) //if there are edits
           server.send(coding?(await (coding.encoder(toSend))):toSend);
       }
       server.on('message',async(msg)=>{
-        if(msg=="PING"){ //ping received(sending own ping).. ALSO, not strict equal because msg is a Buffer not a String
-          setTimeout(()=>server.send("PING"),2500)
-          return lastPing=Number(new Date())
-        }
         obj=stringToObj(coding?(await (coding.decoder(msg))):msg,obj);
         if(!firstMsg){
           objToString(obj)
@@ -357,9 +333,7 @@
         }
       })
       server.on('disconnect',(ev)=>disconnectHandle(ev,'disconnect'))
-      server.on('close',(ev)=>{
-        if(!alreadyClosed)  disconnectHandle(ev,'close');
-      })
+      server.on('close',(ev)=>disconnectHandle(ev,'close'))
       server.on('error',(ev)=>disconnectHandle(ev,'error'))
     })
     return await p
