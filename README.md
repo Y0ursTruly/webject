@@ -3,8 +3,7 @@ Share (and sync) Objects Online with the power of websockets. Keys, Values AND R
 <br>
 **Please note**:
 - To view example usage of the modules this library provides, please refer to the _[tests](https://github.com/Y0ursTruly/webject/blob/main/tests.js)_
-- Version 1.4.x includes breaking changes relative to every version below in terms of the arguments order and slightly the logic in the `connect` module and the change from serve(...).authTokens from an Object to a Map
-- Previous Version 1.4.1 had a blunder with handling what it received from the websocket in EXACTLY ONE case (the updated ws had a datatype change for it in 2 places and I only managed to change for 1) which would make a valid client end up doing pointless reconnections.. needless to say the ONE test I commented would have saved this, so it is uncommented, lesson learned ;-;
+- Typescript definitions coming soon
 
 # Installation
 Multiple ways
