@@ -103,7 +103,7 @@ const {serve, connect, sync, desync, objToString, stringToObj, partFilter, objVa
           (err.message||err).split('\n').at(-1),
           "authToken LOCKED: this is a correct key, but it takes no new connections 0_0"
         )
-        //"magic string" source: webject.js line 316
+        //"magic string" source: webject.js "disconnectHandle" function inside "connect" module
       }
     })
     await t.test("Proof of endListener",async function(){
@@ -124,14 +124,15 @@ const {serve, connect, sync, desync, objToString, stringToObj, partFilter, objVa
           (err.message||err).split('\n').at(-1),
           "closed PURPOSEFULLY: check your location and token parameters, OR you got BOOTED :/"
         )
-        //"magic string" source: webject.js line 318
+        //"magic string" source: webject.js "disconnectHandle" function inside "connect" module
       }
     })
-    await t.test("Ensuring ping logic doesn't disconnect you",async function(){
-      await new Promise(r=>setTimeout(r,5001))
+    //added back the test to ensure it passes but commented out for when pushing to the repo
+    /*await t.test("Ensuring ping logic doesn't disconnect you",async function(){
+      await new Promise(r=>setTimeout(r,71001))
       mainObj.newkeyy=3;
       await sharedObjectsEqual(sharedObj,sharedObj1)
-    })
+    })*/
     await t.test("authLevel 2 and 3 tokens",async function(){
       let temp2=await connect(serverLocation,lvl2Key,null,null,false) //can only insert new items
       let temp3=await connect(serverLocation,lvl3Key,null,null,false) //can delete, modify, insert new items

@@ -10,7 +10,7 @@
 
 
 
-  const webSocket=require('ws'), fs=require('node:fs'), path=require('node:path')
+  const WebSocket=require('ws'), fs=require('node:fs'), path=require('node:path')
   const {objToString,stringToObj,partFilter,objValueFrom}=require(path.join(__dirname,'serial.js'))
   const crypto=require('node:crypto'), cmpStr=objToString({})
   
@@ -82,18 +82,34 @@
     addMapping(token) //creates map of object(if not done already)
     return token //to return is the structure for each authToken object in authTokens
   }
+  setInterval(function(){
+    map.forEach(function(token){
+      token.clients?.forEach(function(client){
+        if(!client.isAlive) return client.close(null,true); //terminate
+        client.isAlive=false; //make it so that only the client.on('pong',...) will reset it to true after ping
+        client.ping()
+        client.send('PING') //for the client to know the server's still here
+      })
+    })
+  },2**14)
   
   
   
   //serve an object
   function serve(obj={},server){ //serve an object(synchronous because this IS the server clients wait to connect to)
     if(typeof obj!=="object"||obj===null){throw new Error("Parameter 'obj' MUST be an OBJECT >:|")}
-    try{var ws=new webSocket.Server({server})}
+    try{var ws=new WebSocket.Server({server})}
     catch{
-      try{var ws=new webSocket.Server({port:8009})}
+      try{var ws=new WebSocket.Server({port:8009})}
       catch{throw new Error("UNABLE TO SERVE >:{")}
     }
-    var authTokens=new Map(), levels={1:1,2:1,3:1,__proto__:null}, encodingStorage={__proto__:null}
+    var authTokens=new Map(), levels={1:1,2:1,3:1,__proto__:null}, encodingStorage=new Map()
+    setInterval(function(){
+      encodingStorage.forEach(function(time,key){
+        if(performance.now()-time>1e3) encodingStorage.delete(key);
+        //keys are deleted when they've become invalid
+      })
+    },1e3)
     
     /*------------utility functions begin------------*/
     function addToken(filter,object,specificToken,coding){ //authToken adder
@@ -192,13 +208,12 @@
     
     /*------------websocket block begin------------*/
     ws.on('connection',(client)=>{
-      let close=client.close.bind(client), ping=null, lastPing=Number(new Date()), alreadyClosed=false
+      let close=client.close.bind(client), alreadyClosed=false
       let clientMsgCount=0, token=null, dispatchClientEdit=(msg)=>map.get(token.object).sendEdit(msg,client)
       
       function closeClient(n=1000,now){ //to ensure socket cleanup
         if(alreadyClosed){return null} //don't repeat close if already closed
         alreadyClosed=true
-        clearInterval(ping) //clearing this interval
         if(token){
           token.clients.delete(client)
           dispatch("disconnect",token,client)
@@ -210,22 +225,9 @@
       let afk=setTimeout(()=>{  closeClient(null,true)  },2000)
       
       client.on('message',async(msg)=>{
-        //heartbeat handling start
-        if(msg=="PING"&&clientMsgCount===1){
-          //ping received with a socket that has SUCCESSFULLY CONNECTED
-          //now I am sending own ping
-          if(new Date()-lastPing<2500) return client.close(1000); //why are you pinging early? spammer?
-          client.send("PING");
-          return lastPing=Number(new Date())
-        }
-        //heartbeat handling end
-        
         //client handshake start
         if(clientMsgCount===0){ //first message is handshake
           clearTimeout(afk) //first message means it is not inactive
-          ping=setInterval(()=>{
-            if(new Date()-lastPing>4000)  closeClient(null,true);
-          },1000)
           let encodingHandled=false
           try{msg=JSON.parse(msg)}
           catch{return client.close(1000)}
@@ -233,21 +235,23 @@
             try{var {decoder}=authTokens.get(msg[0]), parsed=JSON.parse(await decoder(msg[1]))}
             catch{return client.close(1002)}
             
-            if(Date.now()-parsed[1]>1e3) return client.close(1002); //old encoding authentication
+            if(typeof parsed[1]!=="number" || !parsed[0].length) return client.close(1002);
+            if(Date.now()-parsed[1]>=1e3) return client.close(1002); //old encoding authentication
             if(parsed[0].length>64 || parsed[0].length<32) return client.close(1002);
             
             let key=msg[0]+parsed.join('')
-            if(encodingStorage[key]) return client.close(1002); //reused authentication
-            encodingStorage[key]=true
-            setTimeout(_=>delete encodingStorage[key],1e3)
+            if(encodingStorage.has(key)) return client.close(1002); //reused authentication rejected
+            encodingStorage.set(key,performance.now())
+            //there is an interval a good bit above that dumps these keys after they're a second old (after they're already invalid)
+            client.on('pong',function(){client.isAlive=true})
             encodingHandled=true
+            client.isAlive=true
             msg=msg[0]
           }
           else if(!authTokens.get(msg))  return client.close(1000); //if you client doesn't have a valid token, they get closed
           
           if(authTokens.get(msg).decoder && !encodingHandled)  return client.close(1002); //this token uses encoding and it wasn't handled
           if(authTokens.get(msg).locked)  return client.close(1001); //if authToken is locked, no more new connections
-          client.send("PING") //starts the back and forth pinging between server and client
           token=authTokens.get(msg)
           
           if(!token.encoder) client.send(objToString(token.object,true));
@@ -300,13 +304,14 @@
       throw new TypeError("If coding parameter is used, it MUST be an object with both 'encoder' and 'decoder' functions");
     }
     let toReturn=null, toReject=null, s=null, ping=null, alreadyClosed=false
-    let server=await new webSocket(location)
+    let server=new WebSocket(location)
     let p=new Promise((r,j)=> (toReturn=r, toReject=j) )
     server.onerror=(err)=>{
       console.error("Attempting to connect to a websocket using the location parameter produced the following error :/\n~",err.message)
       if(onFail) toReturn? onFail().then(toReturn): onFail(); //if connecting fails, function is called(if given)
     }
     function disconnectHandle(event,name){
+      if(alreadyClosed) return null;
       let code=event, disconnectReason=null
       if(isNaN(code))  code=event.code;
       if(code==1006)
@@ -331,23 +336,21 @@
         authToken,
         await coding.encoder( JSON.stringify([randomChar(32,""),Date.now()]) )
       ]))
-      let firstMsg=false, lastPing=Number(new Date())
-      ping=setInterval(()=>{
-        if(new Date()-lastPing>4000){
+      let firstMsg=false, lastPing=null;
+      ping=setInterval(function(){
+        if(Date.now()-lastPing>2**15){
           alreadyClosed=true //the close event gets called after so I want to prevent 2 events for 1 disconnection
           disconnectHandle(1006,"Connection Broken")
         }
-      },1000)
+      },5e3)
       async function handleObj(){ //sends object data to server
         let toSend=objToString(obj);
         if(toSend!==cmpStr) //if there are edits
           server.send(coding?(await (coding.encoder(toSend))):toSend);
       }
-      server.on('message',async(msg)=>{
-        if(msg=="PING"){ //ping received(sending own ping).. ALSO, not strict equal because msg is a Buffer not a String
-          setTimeout(()=>server.send("PING"),2500)
-          return lastPing=Number(new Date())
-        }
+      server.on('message',async function(msg){
+        if(typeof msg.data!=="undefined") msg=msg.data; //if statement true for browsers
+        if(msg=="PING") lastPing=Date.now();
         obj=stringToObj(coding?(await (coding.decoder(msg))):msg,obj);
         if(!firstMsg){
           objToString(obj)
@@ -357,9 +360,7 @@
         }
       })
       server.on('disconnect',(ev)=>disconnectHandle(ev,'disconnect'))
-      server.on('close',(ev)=>{
-        if(!alreadyClosed)  disconnectHandle(ev,'close');
-      })
+      server.on('close',(ev)=>disconnectHandle(ev,'close'))
       server.on('error',(ev)=>disconnectHandle(ev,'error'))
     })
     return await p
