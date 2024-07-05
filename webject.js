@@ -10,7 +10,7 @@
 
 
 
-  const webSocket=require('ws'), fs=require('node:fs'), path=require('node:path')
+  const WebSocket=require('ws'), fs=require('node:fs'), path=require('node:path')
   const {objToString,stringToObj,partFilter,objValueFrom}=require(path.join(__dirname,'serial.js'))
   const crypto=require('node:crypto'), cmpStr=objToString({})
   
@@ -82,18 +82,34 @@
     addMapping(token) //creates map of object(if not done already)
     return token //to return is the structure for each authToken object in authTokens
   }
+  setInterval(function(){
+    map.forEach(function(token){
+      token.clients?.forEach(function(client){
+        if(!client.isAlive) return client.close(null,true); //terminate
+        client.isAlive=false; //make it so that only the client.on('pong',...) will reset it to true after ping
+        client.ping()
+        client.send('PING') //for the client to know the server's still here
+      })
+    })
+  },2**14)
   
   
   
   //serve an object
   function serve(obj={},server){ //serve an object(synchronous because this IS the server clients wait to connect to)
     if(typeof obj!=="object"||obj===null){throw new Error("Parameter 'obj' MUST be an OBJECT >:|")}
-    try{var ws=new webSocket.Server({server})}
+    try{var ws=new WebSocket.Server({server})}
     catch{
-      try{var ws=new webSocket.Server({port:8009})}
+      try{var ws=new WebSocket.Server({port:8009})}
       catch{throw new Error("UNABLE TO SERVE >:{")}
     }
-    var authTokens=new Map(), levels={1:1,2:1,3:1,__proto__:null}, encodingStorage={__proto__:null}
+    var authTokens=new Map(), levels={1:1,2:1,3:1,__proto__:null}, encodingStorage=new Map()
+    setInterval(function(){
+      encodingStorage.forEach(function(time,key){
+        if(performance.now()-time>1e3) encodingStorage.delete(key);
+        //keys are deleted when they've become invalid
+      })
+    },1e3)
     
     /*------------utility functions begin------------*/
     function addToken(filter,object,specificToken,coding){ //authToken adder
@@ -219,14 +235,17 @@
             try{var {decoder}=authTokens.get(msg[0]), parsed=JSON.parse(await decoder(msg[1]))}
             catch{return client.close(1002)}
             
-            if(Date.now()-parsed[1]>1e3) return client.close(1002); //old encoding authentication
+            if(typeof parsed[1]!=="number" || !parsed[0].length) return client.close(1002);
+            if(Date.now()-parsed[1]>=1e3) return client.close(1002); //old encoding authentication
             if(parsed[0].length>64 || parsed[0].length<32) return client.close(1002);
             
             let key=msg[0]+parsed.join('')
-            if(encodingStorage[key]) return client.close(1002); //reused authentication
-            encodingStorage[key]=true
-            setTimeout(_=>delete encodingStorage[key],1e3)
+            if(encodingStorage.has(key)) return client.close(1002); //reused authentication rejected
+            encodingStorage.set(key,performance.now())
+            //there is an interval a good bit above that dumps these keys after they're a second old (after they're already invalid)
+            client.on('pong',function(){client.isAlive=true})
             encodingHandled=true
+            client.isAlive=true
             msg=msg[0]
           }
           else if(!authTokens.get(msg))  return client.close(1000); //if you client doesn't have a valid token, they get closed
@@ -284,8 +303,8 @@
     if(coding&&typeof coding==="object"?typeof coding.encoder!=="function"||typeof coding.decoder!=="function":false){
       throw new TypeError("If coding parameter is used, it MUST be an object with both 'encoder' and 'decoder' functions");
     }
-    let toReturn=null, toReject=null, s=null, alreadyClosed=false
-    let server=await new webSocket(location)
+    let toReturn=null, toReject=null, s=null, ping=null, alreadyClosed=false
+    let server=new WebSocket(location)
     let p=new Promise((r,j)=> (toReturn=r, toReject=j) )
     server.onerror=(err)=>{
       console.error("Attempting to connect to a websocket using the location parameter produced the following error :/\n~",err.message)
@@ -309,7 +328,7 @@
       else  console.error(errorMessage);
       /*if the promise is NOT fulfiled, reject.. else, warn*/
       
-      clearInterval(s);
+      (clearInterval(s), clearInterval(ping));
       if(onFail) toReturn? onFail().then(toReturn): onFail();
     }
     server.on('open',async()=>{
@@ -317,13 +336,21 @@
         authToken,
         await coding.encoder( JSON.stringify([randomChar(32,""),Date.now()]) )
       ]))
-      let firstMsg=false
+      let firstMsg=false, lastPing=null;
+      ping=setInterval(function(){
+        if(Date.now()-lastPing>2**15){
+          alreadyClosed=true //the close event gets called after so I want to prevent 2 events for 1 disconnection
+          disconnectHandle(1006,"Connection Broken")
+        }
+      },5e3)
       async function handleObj(){ //sends object data to server
         let toSend=objToString(obj);
         if(toSend!==cmpStr) //if there are edits
           server.send(coding?(await (coding.encoder(toSend))):toSend);
       }
-      server.on('message',async(msg)=>{
+      server.on('message',async function(msg){
+        if(typeof msg.data!=="undefined") msg=msg.data; //if statement true for browsers
+        if(msg=="PING") lastPing=Date.now();
         obj=stringToObj(coding?(await (coding.decoder(msg))):msg,obj);
         if(!firstMsg){
           objToString(obj)

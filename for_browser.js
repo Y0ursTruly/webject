@@ -284,8 +284,8 @@
   
   
   
-  var webSocket=WebSocket, cmpStr=objToString({});
-  webSocket.prototype.on=webSocket.prototype.addEventListener
+  var cmpStr=objToString({});
+  WebSocket.prototype.on=webSocket.prototype.addEventListener
   
   
   let randList=new Map() //this block here is for recording random UNIQUE keys
@@ -314,8 +314,8 @@
     if(coding&&typeof coding==="object"?typeof coding.encoder!=="function"||typeof coding.decoder!=="function":false){
       throw new TypeError("If coding parameter is used, it MUST be an object with both 'encoder' and 'decoder' functions");
     }
-    let toReturn=null, toReject=null, s=null, alreadyClosed=false
-    let server=await new webSocket(location)
+    let toReturn=null, toReject=null, s=null, ping=null, alreadyClosed=false
+    let server=new WebSocket(location)
     let p=new Promise((r,j)=> (toReturn=r, toReject=j) )
     server.onerror=(err)=>{
       console.error("Attempting to connect to a websocket using the location parameter produced the following error :/\n~",err.message)
@@ -339,7 +339,7 @@
       else  console.error(errorMessage);
       /*if the promise is NOT fulfiled, reject.. else, warn*/
       
-      clearInterval(s);
+      (clearInterval(s), clearInterval(ping));
       if(onFail) toReturn? onFail().then(toReturn): onFail();
     }
     server.on('open',async()=>{
@@ -347,13 +347,21 @@
         authToken,
         await coding.encoder( JSON.stringify([randomChar(32,""),Date.now()]) )
       ]))
-      let firstMsg=false
+      let firstMsg=false, lastPing=null;
+      ping=setInterval(function(){
+        if(Date.now()-lastPing>2**15){
+          alreadyClosed=true //the close event gets called after so I want to prevent 2 events for 1 disconnection
+          disconnectHandle(1006,"Connection Broken")
+        }
+      },5e3)
       async function handleObj(){ //sends object data to server
         let toSend=objToString(obj);
         if(toSend!==cmpStr) //if there are edits
           server.send(coding?(await (coding.encoder(toSend))):toSend);
       }
-      server.on('message',async(msg)=>{
+      server.on('message',async function(msg){
+        if(typeof msg.data!=="undefined") msg=msg.data; //if statement true for browsers
+        if(msg=="PING") lastPing=Date.now();
         obj=stringToObj(coding?(await (coding.decoder(msg))):msg,obj);
         if(!firstMsg){
           objToString(obj)
