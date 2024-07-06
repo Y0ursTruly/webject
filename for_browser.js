@@ -285,7 +285,7 @@
   
   
   var cmpStr=objToString({});
-  WebSocket.prototype.on=webSocket.prototype.addEventListener
+  WebSocket.prototype.on=WebSocket.prototype.addEventListener
   
   
   let randList=new Map() //this block here is for recording random UNIQUE keys
