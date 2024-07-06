@@ -15,7 +15,7 @@
   const crypto=require('node:crypto'), cmpStr=objToString({})
   
   let randList=new Map() //this block here is for recording random UNIQUE keys
-  let map=new WeakMap() //the map is for only having 1 string AND interval per object
+  let map=new Map() //keys are the objects to be watched/shared
   let random =_=> (crypto.webcrypto||crypto).getRandomValues(new Uint32Array(1))[0];
   let range =(max,min)=> (random()%(max-min))+min; //numeric range
   var arr='abcdefgjiklmnopqrstuvwxyz-_0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ :;.,\\/"\'?!(){}[]@<>=+*#$&`|~^%'.split('')
