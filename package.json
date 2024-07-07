@@ -1,10 +1,14 @@
 {
   "name": "webject",
-  "version": "1.4.3",
+  "version": "1.4.4",
   "description": "Share Objects Online with the power of websockets. Keys, Values AND references. Webject is short for Web Object and it really is a system for sharing objects on the web. Someone can host an object, and make authTokens for others online to share this object",
   "main": "webject.js",
   "scripts": {
     "test": "node tests.js"
+  },
+  "engines": {
+    "node": ">= 16.20.2",
+    "npm": ">= 8.19.4"
   },
   "repository": {
     "type": "git",

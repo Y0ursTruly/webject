@@ -20,6 +20,27 @@
   let range =(max,min)=> (random()%(max-min))+min; //numeric range
   var arr='abcdefgjiklmnopqrstuvwxyz-_0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ :;.,\\/"\'?!(){}[]@<>=+*#$&`|~^%'.split('')
   
+  let now=performance.now()
+  setInterval(function(){ //very important interval (instead of one per object)
+    const shouldPing=performance.now()-now>=2**14
+    if(shouldPing) now=performance.now();
+    map.forEach(function(tokens,object){
+      if(!tokens.size) return map.delete(object);
+      const toSend=objToString(object), shouldSend=toSend!==cmpStr;
+      tokens.forEach(async function(_,token){
+        const msg=shouldSend? (token.encoder?(await token.encoder(toSend)):toSend): null;
+        token.clients.forEach(function(_,client){
+          if(shouldSend) client.send(msg);
+          if(!shouldPing) return null;
+          if(!client.isAlive) return client.close(null,true); //terminate
+          client.isAlive=false; //make it so that only the client.on('pong',...) will reset it to true after ping
+          client.ping()
+          client.send("PING") //for the client to know the server's still here
+        })
+        if(shouldSend) token.dispatch("edit",token,null);
+      })
+    })
+  },20)
   function randomChar(n,defaultChar){
     if(typeof defaultChar!=="string") defaultChar="webject_"; //all default authTokens begin with webject_
     do{
@@ -30,48 +51,20 @@
     randList.set(str,1); //so that this key won't repeat
     return str;
   }
-  function dispatchEdit(myMap,sender=null){
-    myMap.tokens.forEach(function(_,token){
+  function sendEdit(object,toSend,sender){
+    map.get(object).forEach(async function(_,token){
+      let msg=token.encoder?(await token.encoder(toSend)):toSend;
+      token.clients.forEach(function(_,client){
+        if(client!==sender) client.send(msg);
+      })
       token.dispatch("edit",token,sender)
     })
   }
   function addMapping(token){ //token is the authToken object
-    let myMap=map.get(token.object)
-    if(!myMap){ //then set the mapping object
-      objToString(token.object,true)
-      myMap={
-        tokens:new Map([[token,1]]),
-        interval:setInterval(function(){
-          if(!myMap.tokens.size){
-            clearInterval(myMap.interval)
-            map.delete(token.object)
-            return myMap=null
-          }
-          const toSend=objToString(token.object)
-          if(toSend!==cmpStr){ //if there are edits
-            myMap.tokens.forEach(async function(_,token){
-              const msg=token.encoder?(await token.encoder(toSend)):toSend;
-              token.clients.forEach(function(_,client){client.send(msg)})
-            })
-            dispatchEdit(myMap)
-          }
-        },20),
-        sendEdit(toSend,sender){
-          myMap.tokens.forEach(async function(_,token){
-            let msg=token.encoder?(await token.encoder(toSend)):toSend;
-            token.clients.forEach(function(_,client){
-              if(client!==sender) client.send(msg);
-            })
-          })
-          dispatchEdit(myMap,sender)
-        }
-      }
-      map.set(token.object,myMap)
-    }
-    else{
-      myMap.length++;
-      myMap.tokens.set(token,1);
-    }
+    let tokens=map.get(token.object)
+    if(tokens) return tokens.set(token,1);
+    objToString(token.object,true)
+    map.set(token.object,new Map([[token,1]]))
   }
   function createToken(authToken,filter,object,dispatch,coding){ //creates the authToken object
     let token={authToken,filter,clients:new Map(),object,locked:false,dispatch,encoder:null,decoder:null}
@@ -82,16 +75,6 @@
     addMapping(token) //creates map of object(if not done already)
     return token //to return is the structure for each authToken object in authTokens
   }
-  setInterval(function(){
-    map.forEach(function(token){
-      token.clients?.forEach(function(client){
-        if(!client.isAlive) return client.close(null,true); //terminate
-        client.isAlive=false; //make it so that only the client.on('pong',...) will reset it to true after ping
-        client.ping()
-        client.send('PING') //for the client to know the server's still here
-      })
-    })
-  },2**14)
   
   
   
@@ -141,7 +124,7 @@
         throw new RangeError("The authToken MUST be AT LEAST 8 characters long");
       try{
         authTokens.get(authToken).clients.forEach((_,a)=>a.close(1000))
-        map.get( authTokens.get(authToken).object ).tokens.delete( authTokens.get(authToken) )
+        map.get( authTokens.get(authToken).object ).delete( authTokens.get(authToken) )
         randList.delete(authToken)
         return authTokens.delete(authToken)
       }
@@ -209,7 +192,7 @@
     /*------------websocket block begin------------*/
     ws.on('connection',(client)=>{
       let close=client.close.bind(client), alreadyClosed=false
-      let clientMsgCount=0, token=null, dispatchClientEdit=(msg)=>map.get(token.object).sendEdit(msg,client)
+      let clientMsgCount=0, token=null, dispatchClientEdit=(msg)=>sendEdit(token.object,msg,client)
       
       function closeClient(n=1000,now){ //to ensure socket cleanup
         if(alreadyClosed){return null} //don't repeat close if already closed
@@ -433,7 +416,7 @@
     if(!token) throw new Error("NON-EXISTING filePath *-*");
     if(--token.count<1){
       syncList.delete(filePath);
-      map.get(token.object).tokens.delete(token);
+      map.get(token.object).delete(token);
     }
   }
   
@@ -443,4 +426,3 @@
   
   
   })()
-  
