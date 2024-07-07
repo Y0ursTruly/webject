@@ -319,7 +319,7 @@
         authToken,
         await coding.encoder( JSON.stringify([randomChar(32,""),Date.now()]) )
       ]))
-      let firstMsg=false, lastPing=null;
+      let firstMsg=false, lastPing=Date.now();
       ping=setInterval(function(){
         if(Date.now()-lastPing>2**15){
           alreadyClosed=true //the close event gets called after so I want to prevent 2 events for 1 disconnection
