@@ -226,9 +226,7 @@
             if(encodingStorage.has(key)) return client.close(1002); //reused authentication rejected
             encodingStorage.set(key,performance.now())
             //there is an interval a good bit above that dumps these keys after they're a second old (after they're already invalid)
-            client.on('pong',function(){client.isAlive=true})
             encodingHandled=true
-            client.isAlive=true
             msg=msg[0]
           }
           else if(!authTokens.get(msg))  return client.close(1000); //if you client doesn't have a valid token, they get closed
@@ -239,6 +237,8 @@
           
           if(!token.encoder) client.send(objToString(token.object,true));
           else client.send( await token.encoder(objToString(token.object,true)) );
+          client.on('pong',function(){client.isAlive=true})
+          client.isAlive=true
           client.token=token
           token.clients.set(client,1)
           dispatch("connect",token,client)
