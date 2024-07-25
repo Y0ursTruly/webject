@@ -3,8 +3,7 @@ Share (and sync) Objects Online with the power of websockets. Keys, Values AND R
 <br>
 **Please note**:
 - To view example usage of the modules this library provides, please refer to the _[tests](https://github.com/Y0ursTruly/webject/blob/main/tests.js)_
-- Pinging logic in this package has changed and depending more on [this rfc](https://datatracker.ietf.org/doc/html/rfc6455#section-5.5.2)
-- Typescript definitions coming soon
+- TypeScript Definitions Added >:D
 
 # Installation
 Multiple ways

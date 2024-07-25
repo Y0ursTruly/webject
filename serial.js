@@ -68,13 +68,6 @@
     for(let i=0;i<array.length;i++) toReturn[i]=array[i];
     return toReturn
   }
-  function listFn(cache){
-    let toReturn=part=>{
-      part.path=str(part[0])
-      cache[part.path]=part
-    }
-    return toReturn
-  }
   function casingOf(item,forClone){
     if(item===undefined || item===null) return forClone? item: null;
     let tag=item[Symbol.toStringTag];
@@ -112,6 +105,19 @@
     - num is a number which can be 3 options: 0=not mentioned, 1=mentioned as path, 2=mentioned as reference
     - tag is the [Symbol.toStringTag] property of a value and is used for TypedArray, BigInt, Symbol and undefined(which has no [Symbol.toStringTag] but isn't JSON)
   */
+  function recursivelyDetatch(map,cloned){
+    const orig=map.get(cloned)
+    if(!orig) return null;
+    let metadata=map.get(orig)
+    if(!metadata) return map.delete(cloned);
+    keys=Object.keys(cloned);
+    for(let i=0;i<keys.length;i++)
+      if(typeof cloned[keys[i]]==="object" && cloned[keys[i]])
+        recursivelyDetatch(map,cloned[keys[i]]);
+    if(--metadata[4]) return null;
+    map.delete(orig)
+    map.delete(cloned)
+  }
   function recurse(obj,clone,map,list,PATH,level,RECURSED,isTop){
     if(level>128) throw new RangeError("Given object goes too many levels inward (>128)");
     let KEYS=keys(obj), KEYS1=keys(clone), data=map.get(obj)
@@ -121,6 +127,7 @@
     }
     for(let i=0;i<KEYS1.length;i++){
       if(!includes( obj,KEYS1[i] )){
+        recursivelyDetatch(map,clone[KEYS1[i]])
         delete clone[KEYS1[i]]
         list.push([ [...PATH,KEYS1[i]] ]) //delete
       }
@@ -138,6 +145,8 @@
       let Path=[...PATH,key], path=data[1]<list.length&&PATH.length>=2? [data[1],key]: Path;
       
       let notSame=!same( obj[key],clone[key] ), temp=map.get(item)
+      if((typeof obj[key]!=="object"||!obj[key]) && (typeof clone[key]==="object"&&clone[key]))
+        recursivelyDetatch(map,clone[key]);
       //structure of temp: [path, index, num, clone]
       //temp is the value of a map's key, item
       
@@ -146,13 +155,14 @@
       if(newEntry){
         if(notSame||item===undefined) clone[key]=temp?temp[3]:casingOf(item,true);
         if(temp){
+          temp[4]++; //the amount of times in the object item is referenced
           let [refPath,refIndex,mentioned]=temp
           if(mentioned) refPath=refIndex;
           else (temp[2]=2, temp[1]=list.length); //length+i
           list.push([ path,refPath,mentioned ]) //refer
         }
         else{
-          if(item===null || item===undefined?false:!item[Symbol.toStringTag])
+          if(item===null || (item===undefined?false:!item[Symbol.toStringTag]))
             list.push([ path,casingOf(item) ]); //write
           else{
             if(item && typeof item!=="bigint") RECURSED.set(item,true);
@@ -162,8 +172,10 @@
         }
       }
       if(typeof item==="symbol" || (typeof item==="object" && item!==null)){
-        if(!temp)
-          map.set(item,[Path,list.length-1,newEntry?1:0,clone[key],false]);
+        if(!temp){
+          map.set(item,[Path,list.length-1,newEntry?1:0,clone[key],1]);
+          map.set(clone[key],item);
+        }
         if(!RECURSED.get(item)){
           RECURSED.set(item,true);
           recurse(obj[key],clone[key],map,list,Path,level+1,RECURSED);
@@ -191,7 +203,10 @@
       var clone=casingOf(obj,true), map=new WeakMap()
       CACHE.set(obj,{clone,map})
     }
-    map.set(obj,[path,0,1,clone]) //see temp description in recurse function above
+    //object,[path,listindex,mentioned,clone,timesreferenced]
+    //mentioned is if part of path was already referenced in outgoing string
+    //0 means no(do nothing), 1 means path is mentioned in part[0], 2 means the same for part[1]
+    map.set(obj,[path,0,1,clone,1]) //see temp description in recurse function above
     recurse(obj,clone,map,list,path,1,new WeakMap(),true)
     return str(list)
   }
@@ -274,7 +289,6 @@
       if(referencePath.length<=manditoryPath.length) return false;
       for(let i=0;i<manditoryPath.length;i++)
         if(manditoryPath[i]!==referencePath[i]) return false;
-      console.log({manditoryPath,referencePath})
       try{
         if(!allowAllEdits) return valueFrom(part[0],obj),false;
         return true

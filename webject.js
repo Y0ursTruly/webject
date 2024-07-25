@@ -253,7 +253,7 @@
             msg=objToString(token.object);
             if(msg!==cmpStr) dispatchClientEdit(msg); //dispatch client edit if it did anything
           }
-          catch(err){  console.log(err)  }
+          catch(err){  console.warn(err)  }
           //purposeful or not, unwanted data can be sent and read with error
         }
         //object update handling end
