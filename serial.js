@@ -118,8 +118,7 @@
     map.delete(orig)
     map.delete(cloned)
   }
-  function recurse(obj,clone,map,list,PATH,level,RECURSED,isTop){
-    if(level>128) throw new RangeError("Given object goes too many levels inward (>128)");
+  function recurse(obj,clone,map,list,PATH,RECURSED,isTop){
     let KEYS=keys(obj), KEYS1=keys(clone), data=map.get(obj)
     if(isTop) RECURSED.set(obj,true);
     if(obj instanceof Array){
@@ -178,7 +177,7 @@
         }
         if(!RECURSED.get(item)){
           RECURSED.set(item,true);
-          recurse(obj[key],clone[key],map,list,Path,level+1,RECURSED);
+          recurse(obj[key],clone[key],map,list,Path,RECURSED);
         }
       }
     }
@@ -207,7 +206,7 @@
     //mentioned is if part of path was already referenced in outgoing string
     //0 means no(do nothing), 1 means path is mentioned in part[0], 2 means the same for part[1]
     map.set(obj,[path,0,1,clone,1]) //see temp description in recurse function above
-    recurse(obj,clone,map,list,path,1,new WeakMap(),true)
+    recurse(obj,clone,map,list,path,new WeakMap(),true)
     return str(list)
   }
   
