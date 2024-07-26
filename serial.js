@@ -110,7 +110,7 @@
     if(!orig) return null;
     let metadata=map.get(orig)
     if(!metadata) return map.delete(cloned);
-    keys=Object.keys(cloned);
+    let keys=Object.keys(cloned);
     for(let i=0;i<keys.length;i++)
       if(typeof cloned[keys[i]]==="object" && cloned[keys[i]])
         recursivelyDetatch(map,cloned[keys[i]]);
