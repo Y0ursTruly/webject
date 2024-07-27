@@ -333,7 +333,7 @@
       }
       server.on('message',async function(msg){
         if(typeof msg.data!=="undefined") msg=msg.data; //if statement true for browsers
-        if(msg=="PING") lastPing=Date.now();
+        if(msg=="PING") return lastPing=Date.now();
         obj=stringToObj(coding?(await (coding.decoder(msg))):msg,obj);
         if(!firstMsg){
           objToString(obj)
