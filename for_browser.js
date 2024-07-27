@@ -13,6 +13,7 @@
   
   //see if an enumerable property(of key) exists(in obj)
   function includes(obj,key){
+    if(!obj) return false;
     if( (obj instanceof Array) && (key==="length") ) return true;
     let existing=describe(obj,key)
     return existing?existing.enumerable:false
@@ -80,12 +81,12 @@
     }
     if(typeof item!=="object") return item; //numbers, strings
     //also functions but these get ignored either way
-    let shell=item instanceof Array? ([]): ({}),  keys=Object.keys(item);
-    for(let i=0;i<keys.length;i++){
-      let ITEM=item[keys[i]]
+    let shell=item instanceof Array? ([]): ({}),  KEYS=keys(item);
+    for(let i=0;i<KEYS.length;i++){
+      let ITEM=item[KEYS[i]]
       if(typeof ITEM==="bigint" || ITEM===undefined) continue;
       if(!ITEM || (!ITEM[Symbol.toStringTag] && typeof ITEM!=="object"))
-        shell[keys[i]] = ITEM;
+        shell[KEYS[i]] = ITEM;
     }
     return shell
   }
@@ -106,10 +107,10 @@
     if(!orig) return null;
     let metadata=map.get(orig)
     if(!metadata) return map.delete(cloned);
-    let keys=Object.keys(cloned);
-    for(let i=0;i<keys.length;i++)
-      if(typeof cloned[keys[i]]==="object" && cloned[keys[i]])
-        recursivelyDetatch(map,cloned[keys[i]]);
+    let KEYS=keys(cloned);
+    for(let i=0;i<KEYS.length;i++)
+      if(typeof cloned[KEYS[i]]==="object" && cloned[KEYS[i]])
+        recursivelyDetatch(map,cloned[KEYS[i]]);
     if(--metadata[4]) return null;
     map.delete(orig)
     map.delete(cloned)
@@ -169,6 +170,8 @@
       }
       if(typeof item==="symbol" || (typeof item==="object" && item!==null)){
         if(!temp){
+          const former=map.get(clone[key])
+          if(former) map.delete(former);
           map.set(item,[Path,list.length-1,newEntry?1:0,clone[key],1]);
           map.set(clone[key],item);
         }

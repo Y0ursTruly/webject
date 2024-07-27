@@ -3,7 +3,7 @@ Share (and sync) Objects Online with the power of websockets. Keys, Values AND R
 <br>
 **Please note**:
 - To view example usage of the modules this library provides, please refer to the _[tests](https://github.com/Y0ursTruly/webject/blob/main/tests.js)_
-- TypeScript Definitions Added >:D
+- Supporting the `Date` type soon. In the meantime it is advised to `Date` instances into their string or number equivalent
 
 # Installation
 Multiple ways
