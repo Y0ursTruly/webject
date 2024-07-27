@@ -141,7 +141,7 @@
         }
         continue;
       }
-      let Path=[...PATH,key], path=data[1]<list.length&&PATH.length>=2? [data[1],key]: Path;
+      let Path=[...PATH,key], path=data[2]>0&&(data[1]<list.length&&PATH.length>=2)? [data[1],key]: Path;
       
       let notSame=!same( obj[key],clone[key] ), temp=map.get(item)
       if((typeof obj[key]!=="object"||!obj[key]) && (typeof clone[key]==="object"&&clone[key]))
