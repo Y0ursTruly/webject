@@ -74,6 +74,27 @@ const {serve, connect, sync, desync, objToString, stringToObj, partFilter, objVa
       assert.strictEqual(testObj.a.b.f,undefined)
       assert.strictEqual(testObj.a.b.c,3)
     })
+    await t.test("Serialisation Crash Testing",async function(){
+      const date=new Date(), obj={events:[{date,arr:['value1']}]}
+      const clone=stringToObj(objToString(obj)), {events}=obj
+      const standard={"events":[{"date":date-0,"arr":["value1","value2","value2","value2","value2","value2"]}]}
+      let update=_=>stringToObj(objToString(obj),clone);
+      for(let i=0;i<5;i++){
+        obj.events[0].date-=0;
+        update()
+        obj.events=[{date}];
+        update()
+        obj.events[0].date-=0;
+        update()
+        obj.events=null;
+        update()
+        events[0].arr.push("value"+(events.length+1));
+        obj.events=events;
+        update() //the call that crashes it
+      }
+      assert.deepStrictEqual(obj,clone)
+      assert.deepStrictEqual(obj,standard)
+    })
   })
 
   //third set of tests
