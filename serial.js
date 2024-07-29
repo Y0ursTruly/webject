@@ -2,12 +2,17 @@
 
 
 
-  const {Object,JSON,WeakMap,ReferenceError,TypeError}=global
+  const {Object,JSON,WeakMap,ReferenceError,TypeError,Symbol}=global
   const {keys,getOwnPropertyDescriptor:describe}=Object
   const {stringify:str,parse}=JSON, CACHE=new WeakMap()
+  const {toStringTag,toPrimitive}=Symbol
   
   
-  
+  //determine if a value is a date or not
+  const test_date=new Date(), test_date_num=Number(test_date)
+  function isDate(d){
+    return d? d[toPrimitive]?.bind(test_date)('number')===test_date_num: false;
+  }
   //see if an enumerable property(of key) exists(in obj)
   function includes(obj,key){
     if(!obj) return false;
@@ -22,9 +27,9 @@
       return obj1.description===obj2.description;
     let condition1=typeof(obj1)===typeof(obj2)
     let condition2=(obj1 instanceof Array)===(obj2 instanceof Array)
-    let condition3=(obj1?obj1[Symbol.toStringTag]:null) === (obj2?obj2[Symbol.toStringTag]:null)
+    let condition3=(obj1?obj1[toStringTag]:null) === (obj2?obj2[toStringTag]:null)
     let conditionAll=condition1&&condition2&&condition3&&typeof obj1==="object"
-    if(conditionAll && obj1[Symbol.toStringTag]?.includes('Array'))
+    if(conditionAll && obj1[toStringTag]?.includes('Array'))
       return obj1.length===obj2.length;
     return conditionAll
   }
@@ -68,7 +73,7 @@
   }
   function casingOf(item,forClone){
     if(item===undefined || item===null) return forClone? item: null;
-    let tag=item[Symbol.toStringTag];
+    let tag=item[toStringTag];
     if(tag){
       if(tag==="Symbol")
         return forClone? Symbol(item.description): item.description;
@@ -84,7 +89,7 @@
     for(let i=0;i<KEYS.length;i++){
       let ITEM=item[KEYS[i]]
       if(typeof ITEM==="bigint" || ITEM===undefined) continue;
-      if(!ITEM || (!ITEM[Symbol.toStringTag] && typeof ITEM!=="object"))
+      if(!ITEM || (!ITEM[toStringTag] && typeof ITEM!=="object"))
         shell[KEYS[i]] = ITEM;
     }
     return shell
@@ -159,11 +164,11 @@
           list.push([ path,refPath,mentioned ]) //refer
         }
         else{
-          if(item===null || (item===undefined?false:!item[Symbol.toStringTag]))
+          if(item===null || (item===undefined?false:!item[toStringTag]))
             list.push([ path,casingOf(item) ]); //write
           else{
             if(item && typeof item!=="bigint") RECURSED.set(item,true);
-            let datatype=(item||typeof item==="bigint")? item[Symbol.toStringTag]: "undefined";
+            let datatype=(item||typeof item==="bigint")? item[toStringTag]: "undefined";
             list.push([ path,casingOf(item),0,datatype ]); //write(for nonjson data types)
           }
         }
@@ -195,7 +200,7 @@
       var {clone,map}=CACHE.get(obj)||{};
     
     const list=[ [[],!map?casingOf(obj):{}] ], path=[]
-    const tag=obj?obj[Symbol.toStringTag]||null:null
+    const tag=obj?obj[toStringTag]||null:null
     if(nonjson[tag]) list[0].push(0,tag);
     
     if(!map){
