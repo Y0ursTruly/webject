@@ -3,7 +3,7 @@ Share (and sync) Objects Online with the power of websockets. Keys, Values AND R
 <br>
 **Please note**:
 - To view example usage of the modules this library provides, please refer to the _[tests](https://github.com/Y0ursTruly/webject/blob/main/tests.js)_
-- Supporting the `Date` type soon. In the meantime it is advised to `Date` instances into their string or number equivalent
+- Better example usages would be included later on other than the test file
 
 # Installation
 Multiple ways
@@ -332,6 +332,42 @@ undefined
 </ul>
 
 # Structures
+## Object
+An object being shared can have many attributes and subattributes and even circular references without issue. However the top/root element of data being shared **must be** an `Object` (not an array).<br>
+This means, sharing `arr` could be done by sharing `{arr}` and accessing it in connected_data.arr for instance.<br>
+
+#### Unsupported Data Types
+- [NaN](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/NaN)
+- [function](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/function)
+
+For the instances of data that will be ignored, they will simply not be shared or deleted if they were shared to be a value. Above are the instances of data that will be ignored
+
+#### Supported Data Types
+- [Object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object)
+- [Number](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number)
+- [String](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String)
+- [Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)
+- [Boolean](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Boolean)
+- [null](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/null)
+- [undefined](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/undefined)
+- [BigInt](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/BigInt)
+- [Date](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date)
+- [Uint8Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array)
+- [Uint8ClampedArray](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint8ClampedArray)
+- [Uint16Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint16Array)
+- [Uint32Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint32Array)
+- [BigUint64Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/BigUint64Array)
+- [Int8Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Int8Array)
+- [Int16Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Int16Array)
+- [Int32Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Int32Array)
+- [Int64Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Int64Array)
+- [BigInt64Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/BigInt64Array)
+- [Float32Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Float32Array)
+- [Float64Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Float64Array)
+- [Symbol](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Symbol)
+
+Now, the list of datatypes are listed above are supported and any other special class that isn't listed here would have its instances of data treated like a regular [Object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object)
+
 ## Event
 Let's look at what is given to `yourReaction` when you call the `addListener` function (which is a method of what is returned after calling the `serve` function)
 ```
@@ -378,7 +414,7 @@ the value in ONE index(part) of an objToString array are 1 of the following type
 - data is an instance of a datatype to represent a value
 - refPath is an index to a referred path located in another index(part) or the path array itself
 - num is a number which can be 3 options: 0=not mentioned, 1=mentioned as path, 2=mentioned as reference
-- tag is the [Symbol.toStringTag] property of a value and is used for TypedArray, BigInt, Symbol and undefined(which has no [Symbol.toStringTag] but isn't JSON)
+- tag is the [Symbol.toStringTag] property of a value and is used for TypedArray, BigInt, Symbol and undefined and newly Date instances (the latter 2 which have no [Symbol.toStringTag] but isn't JSON)
 ```
 
 ## Coding

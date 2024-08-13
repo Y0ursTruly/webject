@@ -13,6 +13,9 @@
   function isDate(d){
     return d? d[toPrimitive]?.bind(test_date)('number')===test_date_num: false;
   }
+  function datesEqual(d1,d2){
+    return d1[toPrimitive]('number')===d2[toPrimitive]('number')
+  }
   //see if an enumerable property(of key) exists(in obj)
   function includes(obj,key){
     if(!obj) return false;
@@ -23,6 +26,7 @@
   //see if 2 objects are the "same"(to determine if to overwrite or not)
   function same(obj1,obj2){
     if(obj1===obj2) return true;
+    if(isDate(obj1)&&isDate(obj2)&&datesEqual(obj1,obj2)) return true;
     if(typeof obj1==="symbol"&&typeof obj2==="symbol")
       return obj1.description===obj2.description;
     let condition1=typeof(obj1)===typeof(obj2)
@@ -49,6 +53,7 @@
   const nonjson={
     __proto__:null,
     undefined: function(){return undefined},
+    Date: function(data){return new Date(data)},
     Uint8Array: function(data){return new Uint8Array(data)},
     Uint8ClampedArray: function(data){return new Uint8ClampedArray(data)},
     Uint16Array: function(data){return new Uint16Array(data)},
@@ -73,6 +78,8 @@
   }
   function casingOf(item,forClone){
     if(item===undefined || item===null) return forClone? item: null;
+    if(isDate(item))
+      return forClone? new Date(item[toPrimitive]('number')): item[toPrimitive]('number');
     let tag=item[toStringTag];
     if(tag){
       if(tag==="Symbol")
@@ -137,7 +144,7 @@
     for(let i=0;i<KEYS.length;i++){
       let key=KEYS[i], item=obj[key]
       if(includes(clone,key)&&item===clone[key]) continue;
-      if(typeof item==="function"){
+      if(typeof item==="function"||(typeof item==="number"&&isNaN(item))){
         if(includes(clone,key)){
           delete clone[key]
           list.push([ [...PATH,key] ]) //delete BECAUSE datatype is function
@@ -164,11 +171,11 @@
           list.push([ path,refPath,mentioned ]) //refer
         }
         else{
-          if(item===null || (item===undefined?false:!item[toStringTag]))
+          if(item===null || (item===undefined?false:!item[toStringTag]&&!isDate(item)))
             list.push([ path,casingOf(item) ]); //write
           else{
             if(item && typeof item!=="bigint") RECURSED.set(item,true);
-            let datatype=(item||typeof item==="bigint")? item[toStringTag]: "undefined";
+            let datatype=(item||typeof item==="bigint")? item[toStringTag]||"Date": "undefined";
             list.push([ path,casingOf(item),0,datatype ]); //write(for nonjson data types)
           }
         }
