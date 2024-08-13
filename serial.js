@@ -113,7 +113,7 @@
     - data is an instance of a datatype to represent a value
     - refPath is an index to a referred path located in another index(part) or the path array itself
     - num is a number which can be 3 options: 0=not mentioned, 1=mentioned as path, 2=mentioned as reference
-    - tag is the [Symbol.toStringTag] property of a value and is used for TypedArray, BigInt, Symbol and undefined(which has no [Symbol.toStringTag] but isn't JSON)
+    - tag is the [Symbol.toStringTag] property of a value and is used for TypedArray, BigInt, Symbol and undefined and newly Date instances (the latter 2 which have no [Symbol.toStringTag] but isn't JSON)
   */
   function recursivelyDetatch(map,cloned){
     const orig=map.get(cloned)
