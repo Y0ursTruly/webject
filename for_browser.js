@@ -8,9 +8,17 @@
   const {Object,JSON,WeakMap,ReferenceError,TypeError,RangeError}=window
   const {keys,getOwnPropertyDescriptor:describe}=Object
   const {stringify:str,parse}=JSON, CACHE=new WeakMap()
+  const {toStringTag,toPrimitive}=Symbol
   
   
-  
+  //determine if a value is a date or not
+  const test_date=new Date(), test_date_num=Number(test_date)
+  function isDate(d){
+    return d? d[toPrimitive]?.bind(test_date)('number')===test_date_num: false;
+  }
+  function datesEqual(d1,d2){
+    return d1[toPrimitive]('number')===d2[toPrimitive]('number')
+  }
   //see if an enumerable property(of key) exists(in obj)
   function includes(obj,key){
     if(!obj) return false;
@@ -21,13 +29,14 @@
   //see if 2 objects are the "same"(to determine if to overwrite or not)
   function same(obj1,obj2){
     if(obj1===obj2) return true;
+    if(isDate(obj1)&&isDate(obj2)&&datesEqual(obj1,obj2)) return true;
     if(typeof obj1==="symbol"&&typeof obj2==="symbol")
       return obj1.description===obj2.description;
     let condition1=typeof(obj1)===typeof(obj2)
     let condition2=(obj1 instanceof Array)===(obj2 instanceof Array)
-    let condition3=(obj1?obj1[Symbol.toStringTag]:null) === (obj2?obj2[Symbol.toStringTag]:null)
+    let condition3=(obj1?obj1[toStringTag]:null) === (obj2?obj2[toStringTag]:null)
     let conditionAll=condition1&&condition2&&condition3&&typeof obj1==="object"
-    if(conditionAll && obj1[Symbol.toStringTag]?.includes('Array'))
+    if(conditionAll && obj1[toStringTag]?.includes('Array'))
       return obj1.length===obj2.length;
     return conditionAll
   }
@@ -46,7 +55,8 @@
   }
   const nonjson={
     __proto__:null,
-    undefined: function(data){return undefined},
+    undefined: function(){return undefined},
+    Date: function(data){return new Date(data)},
     Uint8Array: function(data){return new Uint8Array(data)},
     Uint8ClampedArray: function(data){return new Uint8ClampedArray(data)},
     Uint16Array: function(data){return new Uint16Array(data)},
@@ -57,6 +67,8 @@
     Int32Array: function(data){return new Int32Array(data)},
     Int64Array: function(data){return new Int64Array(data)},
     BigInt64Array: function(data){return new BigInt64Array(data.split(','))},
+    Float32Array: function(data){return new Float32Array(data)},
+    Float64Array: function(data){return new Float64Array(data)},
     BigInt: function(data){return BigInt(data)},
     Symbol: function(data){return Symbol(data)}
   }
@@ -69,7 +81,9 @@
   }
   function casingOf(item,forClone){
     if(item===undefined || item===null) return forClone? item: null;
-    let tag=item[Symbol.toStringTag];
+    if(isDate(item))
+      return forClone? new Date(item[toPrimitive]('number')): item[toPrimitive]('number');
+    let tag=item[toStringTag];
     if(tag){
       if(tag==="Symbol")
         return forClone? Symbol(item.description): item.description;
@@ -85,7 +99,7 @@
     for(let i=0;i<KEYS.length;i++){
       let ITEM=item[KEYS[i]]
       if(typeof ITEM==="bigint" || ITEM===undefined) continue;
-      if(!ITEM || (!ITEM[Symbol.toStringTag] && typeof ITEM!=="object"))
+      if(!ITEM || (!ITEM[toStringTag] && typeof ITEM!=="object"))
         shell[KEYS[i]] = ITEM;
     }
     return shell
@@ -93,14 +107,16 @@
   /* 
     the value in ONE index(part) of an objToString array are 1 of the following types:
     
+    [path] //delete
     [path,data] //value
     [path,refPath,num] //reference
-    [path] //delete
+    [path,data,0,tag] //custom datatype value
     
     - path is array of strings to represent a location
     - data is an instance of a datatype to represent a value
     - refPath is an index to a referred path located in another index(part) or the path array itself
     - num is a number which can be 3 options: 0=not mentioned, 1=mentioned as path, 2=mentioned as reference
+    - tag is the [Symbol.toStringTag] property of a value and is used for TypedArray, BigInt, Symbol and undefined and newly Date instances (the latter 2 which have no [Symbol.toStringTag] but isn't JSON)
   */
   function recursivelyDetatch(map,cloned){
     const orig=map.get(cloned)
@@ -115,8 +131,7 @@
     map.delete(orig)
     map.delete(cloned)
   }
-  function recurse(obj,clone,map,list,PATH,level,RECURSED,isTop){
-    if(level>128) throw new RangeError("Given object goes too many levels inward (>128)");
+  function recurse(obj,clone,map,list,PATH,RECURSED,isTop){
     let KEYS=keys(obj), KEYS1=keys(clone), data=map.get(obj)
     if(isTop) RECURSED.set(obj,true);
     if(obj instanceof Array){
@@ -132,14 +147,14 @@
     for(let i=0;i<KEYS.length;i++){
       let key=KEYS[i], item=obj[key]
       if(includes(clone,key)&&item===clone[key]) continue;
-      if(typeof item==="function"){
+      if(typeof item==="function"||(typeof item==="number"&&isNaN(item))){
         if(includes(clone,key)){
           delete clone[key]
           list.push([ [...PATH,key] ]) //delete BECAUSE datatype is function
         }
         continue;
       }
-      let Path=[...PATH,key], path=data[1]<list.length&&PATH.length>=2? [data[1],key]: Path;
+      let Path=[...PATH,key], path=data[2]>0&&(data[1]<list.length&&PATH.length>=2)? [data[1],key]: Path;
       
       let notSame=!same( obj[key],clone[key] ), temp=map.get(item)
       if((typeof obj[key]!=="object"||!obj[key]) && (typeof clone[key]==="object"&&clone[key]))
@@ -159,11 +174,11 @@
           list.push([ path,refPath,mentioned ]) //refer
         }
         else{
-          if(item===null || (item===undefined?false:!item[Symbol.toStringTag]))
+          if(item===null || (item===undefined?false:!item[toStringTag]&&!isDate(item)))
             list.push([ path,casingOf(item) ]); //write
           else{
             if(item && typeof item!=="bigint") RECURSED.set(item,true);
-            let datatype=(item||typeof item==="bigint")? item[Symbol.toStringTag]: "undefined";
+            let datatype=(item||typeof item==="bigint")? item[toStringTag]||"Date": "undefined";
             list.push([ path,casingOf(item),0,datatype ]); //write(for nonjson data types)
           }
         }
@@ -177,7 +192,7 @@
         }
         if(!RECURSED.get(item)){
           RECURSED.set(item,true);
-          recurse(obj[key],clone[key],map,list,Path,level+1,RECURSED);
+          recurse(obj[key],clone[key],map,list,Path,RECURSED);
         }
       }
     }
@@ -195,7 +210,7 @@
       var {clone,map}=CACHE.get(obj)||{};
     
     const list=[ [[],!map?casingOf(obj):{}] ], path=[]
-    const tag=obj?obj[Symbol.toStringTag]||null:null
+    const tag=obj?obj[toStringTag]||null:null
     if(nonjson[tag]) list[0].push(0,tag);
     
     if(!map){
@@ -206,7 +221,7 @@
     //mentioned is if part of path was already referenced in outgoing string
     //0 means no(do nothing), 1 means path is mentioned in part[0], 2 means the same for part[1]
     map.set(obj,[path,0,1,clone,1]) //see temp description in recurse function above
-    recurse(obj,clone,map,list,path,1,new WeakMap(),true)
+    recurse(obj,clone,map,list,path,new WeakMap(),true)
     return str(list)
   }
   
