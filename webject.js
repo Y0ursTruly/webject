@@ -237,7 +237,7 @@
           
           if(!token.encoder) client.send(objToString(token.object,true));
           else client.send( await token.encoder(objToString(token.object,true)) );
-          client.on('pong',function(){client.isAlive=true})
+          
           client.isAlive=true
           client.token=token
           token.clients.set(client,1)
